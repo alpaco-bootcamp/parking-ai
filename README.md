@@ -58,21 +58,18 @@ pipenv shell
 ---
 
 ## 🗂️ Project Structure
-
 ```bash
 parking-ai/
 │
-├── agents/             # Agent 정의 및 Tool 연동
-├── data/               # 크롤링된 JSON 데이터 및 샘플 저장소
-├── crawler/            # BeautifulSoup 기반 통장 크롤러
-├── db/                 # MongoDB 연동 유틸리티
-├── prompts/            # LLM 프롬프트 템플릿
-├── rag/                # RAG 기반 Retriever 구성
-├── simulator/          # 이자 계산기, 전략 시뮬레이터
-├── main.py             # Entry Point
-├── Pipfile             # 패키지 목록 정의
-└── README.md
+├── agents/             # 에이전트 정의 및 Tool 연동 폴더
+├── crawler/            # HTML 크롤링 및 파싱 스크립트 폴더
+├── data/               # 크롤링된 JSON 데이터 샘플 저장 폴더
+├── db/                 # MongoDB 연동 및 데이터 처리 유틸리티
+├── prompts/            # 프롬프트 템플릿 모음
+├── rag/                # RAG 기반 검색 및 LLM 연동 모듈
+├── simulator/          # 전략 시뮬레이션 및 이자 계산기
 ```
+
 
 ---
 
