@@ -1,11 +1,117 @@
 import math
+import time
 
 import requests
 from bs4 import BeautifulSoup
 
-from common.data import parking_list_base_url, BASIC_COLLECTION_NAME, crwal_headers, special_flag_keys, camel_to_snake, \
-    snake_to_camel, parking_detail_base_url
+from common.data import (
+    parking_list_base_url,
+    BASIC_COLLECTION_NAME,
+    crwal_headers,
+    special_flag_keys,
+    camel_to_snake,
+    snake_to_camel,
+    parking_detail_base_url, PRODUCT_FIELD, CATEGORY_FIELD,
+)
+from crawler.extra_data import extract_product_guide, extract_interest_guide
 from crawler.save_db import insert_document, drop_collection, get_all_documents
+
+
+def create_basic_product(product: dict) -> dict:
+    """
+    기존 데이터로 기본 제품 객체를 생성합니다.
+
+    Args:
+        product: 기존 제품 데이터
+
+    Returns:
+        Dict: 기본 제품 정보 객체
+    """
+    # 카테고리 한글 변환
+    categories_korean = []
+    if product.get("categories"):
+        for category in product["categories"]:
+            korean_category = CATEGORY_FIELD.get(category, category)
+            categories_korean.append(korean_category)
+
+    return {
+        # 기본 정보
+        "product_name": product.get("product_name", ""),
+        "product_code": product.get("product_code", ""),
+        "company_name": product.get("company_name", ""),
+        "categories": categories_korean,
+        "interest_rate": float(product.get("interest_rate", 0)),
+        "prime_interest_rate": float(product.get("prime_interest_rate", 0)),
+
+        # [상품 안내] 필드
+        "product_guide": {},
+
+        # [금리 안내] 필드
+        "interest_guide": {},
+    }
+
+def create_detail_product(product: dict, soup: BeautifulSoup) -> dict:
+    """
+    기존 제품 데이터와 크롤링 데이터를 결합하여 새로운 객체를 생성합니다.
+
+    Args:
+        product: 기존 제품 데이터
+        soup: BeautifulSoup 객체
+
+    Returns:
+        Dict: 완성된 제품 상세정보 객체
+    """
+    # 기존 데이터로 기본 객체 생성
+    detail_product = create_basic_product(product)
+
+    # 크롤링 데이터 추가
+    try:
+        # 상품 안내 정보 추가
+        product_guide = extract_product_guide(soup)
+        detail_product.update({'product_guide': product_guide})
+
+        # 금리 안내 정보 추가
+        interest_guide = extract_interest_guide(soup)
+        detail_product.update({'interest_guide': interest_guide})
+
+        print(f"📊 상세 정보 추가 완료: {detail_product['product_name']}")
+
+    except Exception as e:
+        print(f"⚠️ 상세 정보 추가 실패 ({detail_product['product_name']}): {e}")
+
+    return detail_product
+
+def fetch_parking_detail() -> list[dict]:
+    """
+    파킹통장 상세 정보를 크롤링하여 새로운 객체로 생성합니다.
+    """
+    # 기존 기본상품 리스트
+    product_list = list(get_all_documents(BASIC_COLLECTION_NAME))
+    # 파킹통장 상세상품 리스트
+    detail_product_list = []
+
+    for i, product in enumerate(product_list):
+        if i > 3:
+            break
+        try:
+            # 데이터 크롤링
+            print(f"🔍 {i + 1}/{len(product_list)} 처리 중: {product.get('product_name', 'Unknown')}")
+
+            url = f'{parking_detail_base_url}/{product["product_code"]}'
+            response = requests.get(url)
+            soup = BeautifulSoup(response.text, "lxml")
+
+            # 새로운 객체 생성 (기존 데이터 + 크롤링 데이터)
+            detail_product = create_detail_product(product, soup)
+            detail_product_list.append(detail_product)
+
+            print(f"✅ {product.get('product_name')} 처리 완료")
+            time.sleep(0.5)  # 서버 부하 방지
+
+        except Exception as e:
+            print(f"❌ {product.get('product_code')} 처리 실패: {e}")
+
+    return detail_product_list
 
 
 def process_special_conditons(product_list: list[dict]) -> list[dict]:
@@ -24,13 +130,15 @@ def process_special_conditons(product_list: list[dict]) -> list[dict]:
     """
     for flag_key in special_flag_keys:
         # 상품 인덱스 생성 (성능 최적화)
-        products_index = { product['code']: i for i, product in enumerate(product_list)}
+        products_index = {
+            product["product_code"]: i for i, product in enumerate(product_list)
+        }
         update_count = 0
 
-        url = f'{parking_list_base_url}&specialConditions%5B%5D={snake_to_camel(flag_key)}'
+        url = f"{parking_list_base_url}&specialConditions%5B%5D={snake_to_camel(flag_key)}"
         response = requests.get(url, headers=crwal_headers)
         result = response.json()  # Dict
-        result_data = result.get('result')
+        result_data = result.get("result")
         total_count, size = result_data.get("totalCount"), result_data.get("size")
 
         if total_count == 0:
@@ -41,20 +149,20 @@ def process_special_conditons(product_list: list[dict]) -> list[dict]:
 
         # 페이징처리
         for i in range(call_num):
-            url = f'{parking_list_base_url}&specialConditions%5B%5D={snake_to_camel(flag_key)}&offset={i * 20}'
+            url = f"{parking_list_base_url}&specialConditions%5B%5D={snake_to_camel(flag_key)}&offset={i * 20}"
             response = requests.get(url, headers=crwal_headers)
             result = response.json()  # Dict
 
-            products = result.get('result', {}).get('products', [])
-            eligible_codes = [product.get('code') for product in products]
+            products = result.get("result", {}).get("products", [])
+            eligible_codes = [product.get("code") for product in products]
 
             for code in eligible_codes:
                 if code in products_index:
                     idx = products_index[code]
-                    product_list[idx]['special_conditions'].update({flag_key: True})
+                    product_list[idx]["special_conditions"].update({flag_key: True})
                     update_count += 1
 
-        print(f'{flag_key}: {update_count}개 업데이트!')
+        print(f"{flag_key}: {update_count}개 업데이트!")
 
     return product_list
 
@@ -76,7 +184,6 @@ def fetch_parking_list() -> list[dict]:
                     - primeInterest_rate (str): 우대 금리
                     - categories (List[str]): 상품 카테고리 목록 (예: online, anyone, special)
     """
-
 
     response = requests.get(parking_list_base_url, headers=crwal_headers)
     data = response.json()  # Dict
@@ -105,10 +212,9 @@ def fetch_parking_list() -> list[dict]:
                 "categories": product.get(
                     "productCategories"
                 ),  # 카테고리 (방문없이 가입, 누구나 가입, 특판)
-                "special_conditions": { # 우대조건
-                    key : False  for key in special_flag_keys
-                }
-
+                "special_conditions": {  # 우대조건
+                    key: False for key in special_flag_keys
+                },
             }
             for product in result.get("products")
         ]
@@ -121,22 +227,6 @@ def fetch_parking_list() -> list[dict]:
     return processed_product_list
 
 
-def fetch_parking_detail():
-    product_list = list(get_all_documents(BASIC_COLLECTION_NAME))
-
-
-    for i, product in enumerate(product_list):
-        if i > 3:
-            break
-        response = requests.get(f'{parking_detail_base_url}/{product["code"]}')
-        print(f"response.content: {response.content}")
-
-        soup = BeautifulSoup(response.content, 'lxml')
-
-
-
-    print('끝')
-
 
 def fetch():
     # 파킹통장 상품 리스트 크롤링
@@ -148,7 +238,11 @@ def fetch():
     # drop_collection(BASIC_COLLECTION_NAME)
 
     # 각 파킹통장 detail
-    fetch_parking_detail()
+    product_detail_list = fetch_parking_detail()
+    for data in product_detail_list:
+        print(data['product_name'])
+        print(f'product_guide: {data["product_guide"]}')
+        print(f'interest_guide: {data["interest_guide"]}')
 
 
 if __name__ == "__main__":
