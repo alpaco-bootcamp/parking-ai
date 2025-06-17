@@ -11,7 +11,7 @@ from common.data import (
     special_flag_keys,
     camel_to_snake,
     snake_to_camel,
-    parking_detail_base_url, PRODUCT_FIELD, CATEGORY_FIELD,
+    parking_detail_base_url, PRODUCT_FIELD, CATEGORY_FIELD, DETAIL_COLLECTION_NAME,
 )
 from crawler.extra_data import extract_product_guide, extract_interest_guide
 from crawler.save_db import insert_document, drop_collection, get_all_documents
@@ -75,6 +75,8 @@ def create_detail_product(product: dict, soup: BeautifulSoup) -> dict:
         detail_product.update({'interest_guide': interest_guide})
 
         print(f"📊 상세 정보 추가 완료: {detail_product['product_name']}")
+        print(f"📊 우대조건 완료: {detail_product['interest_guide']['preferential_details']}")
+
 
     except Exception as e:
         print(f"⚠️ 상세 정보 추가 실패 ({detail_product['product_name']}): {e}")
@@ -91,8 +93,8 @@ def fetch_parking_detail() -> list[dict]:
     detail_product_list = []
 
     for i, product in enumerate(product_list):
-        if i > 3:
-            break
+        # if i > 10:
+        #     break
         try:
             # 데이터 크롤링
             print(f"🔍 {i + 1}/{len(product_list)} 처리 중: {product.get('product_name', 'Unknown')}")
@@ -105,7 +107,6 @@ def fetch_parking_detail() -> list[dict]:
             detail_product = create_detail_product(product, soup)
             detail_product_list.append(detail_product)
 
-            print(f"✅ {product.get('product_name')} 처리 완료")
             time.sleep(0.5)  # 서버 부하 방지
 
         except Exception as e:
@@ -175,14 +176,14 @@ def fetch_parking_list() -> list[dict]:
 
     Returns:
         List[Dict]: 파킹통장 상품 정보가 담긴 리스트.
-                    각 항목은 다음과 같은 필드를 포함합니다:
-                    - product_name (str): 상품 이름
-                    - product_code (str): 상품 코드
-                    - company_name (str): 금융사 이름
-                    - company_code (str): 금융사 코드
-                    - interest_rate (str): 기본 금리
-                    - primeInterest_rate (str): 우대 금리
-                    - categories (List[str]): 상품 카테고리 목록 (예: online, anyone, special)
+        각 항목은 다음과 같은 필드를 포함합니다:
+        - product_name (str): 상품 이름
+        - product_code (str): 상품 코드
+        - company_name (str): 금융사 이름
+        - company_code (str): 금융사 코드
+        - interest_rate (str): 기본 금리
+        - primeInterest_rate (str): 우대 금리
+        - categories (List[str]): 상품 카테고리 목록 (예: online, anyone, special)
     """
 
     response = requests.get(parking_list_base_url, headers=crwal_headers)
@@ -226,8 +227,6 @@ def fetch_parking_list() -> list[dict]:
     # 최종 데이터
     return processed_product_list
 
-
-
 def fetch():
     # 파킹통장 상품 리스트 크롤링
     # product_list = fetch_parking_list()
@@ -239,10 +238,8 @@ def fetch():
 
     # 각 파킹통장 detail
     product_detail_list = fetch_parking_detail()
-    for data in product_detail_list:
-        print(data['product_name'])
-        print(f'product_guide: {data["product_guide"]}')
-        print(f'interest_guide: {data["interest_guide"]}')
+    # 크롤링한 데이터 저장
+    insert_document(data=product_detail_list, collection_name=DETAIL_COLLECTION_NAME, id_value='product_code')
 
 
 if __name__ == "__main__":

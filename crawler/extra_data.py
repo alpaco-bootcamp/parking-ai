@@ -67,12 +67,11 @@ def extract_interest_guide(soup: BeautifulSoup) -> dict:
     Returns:
         Dict: 금리 안내 정보
     """
-    interest_guide = {key: '' for key in INTEREST_GUIDE_FIELD}
+    interest_guide = {}
 
     try:
         # 금리 안내 섹션 찾기
         interest_section = soup.find("div", {"id": "INTEREST_RATE_GUIDE"})
-        print(f"🔥금리 안내 섹션: {interest_section}")
         if not interest_section:
             print("⚠️ 금리 안내 섹션을 찾을 수 없습니다")
             return interest_guide
@@ -84,14 +83,7 @@ def extract_interest_guide(soup: BeautifulSoup) -> dict:
         interest_guide["preferential_details"] = extract_preferential_details(interest_section)
 
         # 금리 유형 추출
-        items = interest_section.find_all(class_=lambda c: c and c.startswith("TextList_item"))
-        for item in items:
-            label_elem = item.find(lambda tag: tag.name in ["dt", "span"] and tag.get("class") and any("TextList_label" in cls for cls in tag.get("class")))
-            if label_elem and "유형" in extract_clean_text(label_elem):
-                desc_elem = item.find(lambda tag: tag.name in ["dd", "div", "span"] and tag.get("class") and any("TextList_description" in cls for cls in tag.get("class")))
-                if desc_elem:
-                    interest_guide["rate_type"] = extract_clean_text(desc_elem)
-                    break
+        interest_guide["rate_type"] = extract_rate_type(interest_section)
 
     except Exception as e:
         print(f"❌ 금리 안내 섹션 처리 실패: {e}")
@@ -99,77 +91,173 @@ def extract_interest_guide(soup: BeautifulSoup) -> dict:
     return interest_guide
 
 
-def extract_basic_rate(section) -> str:
+def extract_basic_rate(section) -> list[dict]:
     """
-    기본금리 정보를 추출합니다 (테이블 또는 텍스트 형태).
+    기본금리 정보를 추출합니다.
 
     Args:
         section: 금리 안내 섹션 BeautifulSoup 객체
 
     Returns:
-        str: 기본금리 정보 텍스트
+        list:
+        [
+            {"condition": "5백만원 이하 분", "rate": "연 3.01%(세전)"},
+            {"condition": "3억 원 이하 분", "rate": "연 2.8%(세전)"},
+            ...
+        ]
+       or 텍스트 형태인 경우
+        [
+            {"text": "저축예금 : 연 0.1%(2025.5.9 기준, 세금공제 전)"}
+        ]
     """
     try:
-        # 1. 테이블 형태 시도
+        # 1. 테이블 형태 추출
         table = section.find("table", class_=lambda c: c and c.startswith("InterestRateTable_table"))
         if table:
-            table_text = extract_clean_text(table)
-            if table_text.strip():
-                return f"기본금리 (테이블): {table_text}"
+            rows = table.find_all("tr")
+            rate_info = []
 
-        # 2. 텍스트 형태 시도
-        basic_rate_items = section.find_all(class_=lambda c: c and c.startswith("TextList_item"))
-        for item in basic_rate_items:
-            label_elem = item.find(lambda tag: tag.name in ["dt", "span"] and tag.get("class") and any("TextList_label" in cls for cls in tag.get("class")))
-            if label_elem and "기본금리" in extract_clean_text(label_elem):
-                desc_elem = item.find(lambda tag: tag.name in ["dd", "div", "span"] and tag.get("class") and any("TextList_description" in cls for cls in tag.get("class")))
+            for row in rows:
+                # 모든 셀이 <th> 태그인 경우, 즉 헤더행은 건너뜀
+                if all(col.name == "th" for col in row.find_all(["td", "th"])):
+                    continue
+
+                cols = row.find_all(["td", "th"])
+                if len(cols) >= 2:
+                    condition = extract_clean_text(cols[0])
+                    rate = extract_clean_text(cols[1])
+                    if condition and rate:
+                        rate_info.append({
+                            "condition": condition,
+                            "rate": rate
+                        })
+
+            if rate_info:
+                return rate_info
+
+        # 2. 텍스트 형태 추출
+        # 금리 안내 텍스트 정보가 있는 영역 추출
+        text_info = section.find("div", class_=lambda c: c and c.startswith("InterestRateGuide_area-text-info"))
+        if text_info:
+            items = text_info.find_all("div", class_=lambda c: c and c.startswith("TextList_item"))
+            if items:
+                # 첫 번째 항목이 기본금리 정보일 가능성이 높음
+                desc_elem = items[0].find(lambda tag: tag.name in ["dd", "div", "span"] and tag.get("class") and any("TextList_description" in cls for cls in tag.get("class")))
                 if desc_elem:
-                    return extract_clean_text(desc_elem)
+                    text = extract_clean_text(desc_elem)
+                    return [{"text": text}]
 
-        return "기본금리 정보 없음"
+        return [{"text": "기본금리 정보 없음"}]
 
     except Exception as e:
         print(f"⚠️ 기본금리 추출 실패: {e}")
-        return "기본금리 추출 실패"
+        return [{"text": "기본금리 추출 실패"}]
 
 
-def extract_preferential_details(section) -> str:
+def extract_preferential_details(section) -> dict:
     """
-    조건별 우대금리 정보를 모두 추출합니다.
+    금리 안내 섹션 중 우대금리 조건(preferential_details)을 구조화하여 추출합니다.
 
     Args:
         section: 금리 안내 섹션 BeautifulSoup 객체
 
     Returns:
-        str: 조건별 우대금리 전체 텍스트
+        dict: {
+            "intro": str,
+            "conditions": [
+                { "index": str, "description": str },
+                ...
+            ]
+        } 또는 빈 dict (조건별 항목이 없을 경우)
     """
     try:
-        all_texts = []
-        items = section.find_all(class_=lambda c: c and c.startswith("TextList_item"))
-        is_preferential_section = False
+        # 텍스트 블록 전체 추출
+        text_infos = section.find_all("div", class_=lambda c: c and c.startswith("InterestRateGuide_area-text-info"))
+        if not text_infos:
+            return {}
+
+        items = []
+        for text_info in text_infos:
+            items.extend(
+                text_info.find_all("div", class_=lambda c: c and c.startswith("TextList_item"))
+            )
+
+        found_condition_label = False
+        intro = ""
+        conditions = []
 
         for item in items:
             label_elem = item.find(lambda tag: tag.name in ["dt", "span"] and tag.get("class") and any("TextList_label" in cls for cls in tag.get("class")))
             desc_elem = item.find(lambda tag: tag.name in ["dd", "div", "span"] and tag.get("class") and any("TextList_description" in cls for cls in tag.get("class")))
 
-            if label_elem:
-                label_text = extract_clean_text(label_elem)
-                if "조건별" in label_text:
-                    is_preferential_section = True
-                elif label_text.strip() and "조건별" not in label_text and is_preferential_section:
-                    if "유형" in label_text:
-                        break
+            if not desc_elem:
+                continue
 
-            if is_preferential_section and desc_elem:
-                content = extract_clean_text(desc_elem)
-                if content.strip():
-                    all_texts.append(content)
+            label_text = extract_clean_text(label_elem) if label_elem else ""
 
-        return " | ".join(all_texts) if all_texts else "우대조건 정보 없음"
+            # 조건별 도입부
+            if "조건별" in label_text:
+                intro = extract_clean_text(desc_elem)
+                found_condition_label = True
+                continue
+
+            # 조건들 추출
+            if found_condition_label:
+                ul = desc_elem.find("ul", class_="number-list")
+                if ul:
+                    for li in ul.find_all("li"):
+                        index_tag = li.find("b")
+                        desc_tag = li.find("p")
+                        if desc_tag:
+                            conditions.append({
+                                "index": index_tag.get_text(strip=True) if index_tag else "",
+                                "description": desc_tag.get_text(separator="\n", strip=True)
+                            })
+
+        if found_condition_label:
+            return {
+                "intro": intro,
+                "conditions": conditions
+            }
+
+        # 조건별 라벨이 없으면 빈 dict 반환
+        return {}
 
     except Exception as e:
         print(f"⚠️ 우대조건 추출 실패: {e}")
-        return "우대조건 추출 실패"
+        return {}
+
+
+
+def extract_rate_type(section: BeautifulSoup) -> str:
+    """
+    금리 유형 정보를 추출합니다.
+
+    Args:
+        section: 금리 안내 섹션 BeautifulSoup 객체
+
+    Returns:
+        str: 금리 유형 (예: '변동금리', '고정금리' 등)
+    """
+    try:
+        items = section.find_all(class_=lambda c: c and c.startswith("TextList_item"))
+        for item in items:
+            label_elem = item.find(lambda tag: tag.name in ["dt", "span"]
+                                   and tag.get("class")
+                                   and any("TextList_label" in cls for cls in tag.get("class")))
+            desc_elem = item.find(lambda tag: tag.name in ["dd", "div", "span"]
+                                  and tag.get("class")
+                                  and any("TextList_description" in cls for cls in tag.get("class")))
+
+            if label_elem and "유형" in extract_clean_text(label_elem) and desc_elem:
+                return extract_clean_text(desc_elem)
+
+        return ""
+
+    except Exception as e:
+        print(f"⚠️ 금리 유형 추출 실패: {e}")
+        return ""
+
 
 
 def extract_clean_text(element) -> str:

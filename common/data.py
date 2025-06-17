@@ -25,6 +25,7 @@ special_flag_keys = [
 
 DB_NAME = "parking"
 BASIC_COLLECTION_NAME = "products"
+DETAIL_COLLECTION_NAME = "product_details"
 
 # [기본 정보] 필드
 BASIC_INFO_FIELD = {
