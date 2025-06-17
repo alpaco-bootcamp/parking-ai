@@ -9,12 +9,11 @@ from common.data import (
     BASIC_COLLECTION_NAME,
     crwal_headers,
     special_flag_keys,
-    camel_to_snake,
     snake_to_camel,
-    parking_detail_base_url, PRODUCT_FIELD, CATEGORY_FIELD, DETAIL_COLLECTION_NAME,
+    parking_detail_base_url, CATEGORY_FIELD, DETAIL_COLLECTION_NAME,
 )
 from crawler.extra_data import extract_product_guide, extract_interest_guide
-from crawler.save_db import insert_document, drop_collection, get_all_documents
+from db.save_db import insert_document, get_all_documents
 
 
 def create_basic_product(product: dict) -> dict:
