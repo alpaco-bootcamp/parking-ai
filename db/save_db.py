@@ -2,7 +2,7 @@ from pymongo import MongoClient
 from pymongo.collection import Collection
 from pymongo.synchronous.cursor import Cursor
 
-from common.data import DB_NAME
+from common.data import DB_NAME, MONGO_URI
 
 
 def select_collection(collection_name: str, db_name: str = DB_NAME) -> Collection:
@@ -18,7 +18,7 @@ def select_collection(collection_name: str, db_name: str = DB_NAME) -> Collectio
     """
 
     # MongoDB 연결
-    client = MongoClient("mongodb://localhost:27017")
+    client = MongoClient(MONGO_URI)
 
     # db 선택
     db = client[db_name]

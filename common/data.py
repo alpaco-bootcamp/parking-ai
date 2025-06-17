@@ -22,7 +22,7 @@ special_flag_keys = [
 
 # 🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥🔥
 # 공통 불변 데이터
-
+MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "parking"
 BASIC_COLLECTION_NAME = "products"
 DETAIL_COLLECTION_NAME = "product_details"
