@@ -28,6 +28,7 @@ def select_collection(collection_name: str, db_name: str = DB_NAME) -> Collectio
 
     return collection
 
+
 def convert_id_field(doc: dict, id_key: str) -> dict:
     """
     기존 document에 지정한 키 값을 MongoDB의 _id 필드로 추가
@@ -45,7 +46,10 @@ def convert_id_field(doc: dict, id_key: str) -> dict:
 
 
 def insert_document(
-    data: list | dict, collection_name: str, db_name: str = DB_NAME, id_value: str = None
+    data: list | dict,
+    collection_name: str,
+    db_name: str = DB_NAME,
+    id_value: str = None,
 ) -> None:
     """
     파킹통장 상품 정보 리스트를 MongoDB에 저장
@@ -71,7 +75,9 @@ def insert_document(
 
         if isinstance(data, list):  # data가 list타입인 경우
             # _id값 매핑
-            data = [convert_id_field(doc, id_value) for doc in data] if id_value else data
+            data = (
+                [convert_id_field(doc, id_value) for doc in data] if id_value else data
+            )
             collection.insert_many(data)
         else:
             # _id값 매핑

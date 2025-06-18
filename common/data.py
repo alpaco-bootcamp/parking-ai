@@ -54,13 +54,10 @@ INTEREST_GUIDE_FIELD = {
 PRODUCT_FIELD = {
     # 기본 정보 (6개)
     **BASIC_INFO_FIELD,
-
     # [상품 안내] 필드
     "product_guide": PRODUCT_GUIDE_FIELD,
-
     # [금리 안내] 필드
     "interest_guide": INTEREST_GUIDE_FIELD,
-
 }
 
 # 카테고리 매핑 테이블
@@ -98,7 +95,3 @@ def snake_to_camel(snake_str):
     """
     components = snake_str.split("_")
     return components[0] + "".join(word.capitalize() for word in components[1:])
-
-
-
-

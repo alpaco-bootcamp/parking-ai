@@ -10,7 +10,9 @@ from common.data import (
     crwal_headers,
     special_flag_keys,
     snake_to_camel,
-    parking_detail_base_url, CATEGORY_FIELD, DETAIL_COLLECTION_NAME,
+    parking_detail_base_url,
+    CATEGORY_FIELD,
+    DETAIL_COLLECTION_NAME,
 )
 from crawler.extra_data import extract_product_guide, extract_interest_guide
 from db.save_db import insert_document, get_all_documents
@@ -41,13 +43,12 @@ def create_basic_product(product: dict) -> dict:
         "categories": categories_korean,
         "interest_rate": float(product.get("interest_rate", 0)),
         "prime_interest_rate": float(product.get("prime_interest_rate", 0)),
-
         # [상품 안내] 필드
         "product_guide": {},
-
         # [금리 안내] 필드
         "interest_guide": {},
     }
+
 
 def create_detail_product(product: dict, soup: BeautifulSoup) -> dict:
     """
@@ -67,20 +68,22 @@ def create_detail_product(product: dict, soup: BeautifulSoup) -> dict:
     try:
         # 상품 안내 정보 추가
         product_guide = extract_product_guide(soup)
-        detail_product.update({'product_guide': product_guide})
+        detail_product.update({"product_guide": product_guide})
 
         # 금리 안내 정보 추가
         interest_guide = extract_interest_guide(soup)
-        detail_product.update({'interest_guide': interest_guide})
+        detail_product.update({"interest_guide": interest_guide})
 
         print(f"📊 상세 정보 추가 완료: {detail_product['product_name']}")
-        print(f"📊 우대조건 완료: {detail_product['interest_guide']['preferential_details']}")
-
+        print(
+            f"📊 우대조건 완료: {detail_product['interest_guide']['preferential_details']}"
+        )
 
     except Exception as e:
         print(f"⚠️ 상세 정보 추가 실패 ({detail_product['product_name']}): {e}")
 
     return detail_product
+
 
 def fetch_parking_detail() -> list[dict]:
     """
@@ -96,7 +99,9 @@ def fetch_parking_detail() -> list[dict]:
         #     break
         try:
             # 데이터 크롤링
-            print(f"🔍 {i + 1}/{len(product_list)} 처리 중: {product.get('product_name', 'Unknown')}")
+            print(
+                f"🔍 {i + 1}/{len(product_list)} 처리 중: {product.get('product_name', 'Unknown')}"
+            )
 
             url = f'{parking_detail_base_url}/{product["product_code"]}'
             response = requests.get(url)
@@ -226,6 +231,7 @@ def fetch_parking_list() -> list[dict]:
     # 최종 데이터
     return processed_product_list
 
+
 def fetch():
     # 파킹통장 상품 리스트 크롤링
     # product_list = fetch_parking_list()
@@ -238,7 +244,11 @@ def fetch():
     # 각 파킹통장 detail
     product_detail_list = fetch_parking_detail()
     # 크롤링한 데이터 저장
-    insert_document(data=product_detail_list, collection_name=DETAIL_COLLECTION_NAME, id_value='product_code')
+    insert_document(
+        data=product_detail_list,
+        collection_name=DETAIL_COLLECTION_NAME,
+        id_value="product_code",
+    )
 
 
 if __name__ == "__main__":

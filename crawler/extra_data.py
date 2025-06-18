@@ -14,7 +14,7 @@ def extract_product_guide(soup: BeautifulSoup) -> dict:
     Returns:
         Dict: 상품 안내 정보
     """
-    product_guide = {key: '' for key in PRODUCT_GUIDE_FIELD}
+    product_guide = {key: "" for key in PRODUCT_GUIDE_FIELD}
 
     try:
         # 상품 안내 섹션 찾기
@@ -24,11 +24,21 @@ def extract_product_guide(soup: BeautifulSoup) -> dict:
             return product_guide
 
         # 각 항목별 추출
-        items = product_section.find_all(class_=lambda c: c and c.startswith("TextList_item"))
+        items = product_section.find_all(
+            class_=lambda c: c and c.startswith("TextList_item")
+        )
         for item in items:
             try:
-                label_elem = item.find(lambda tag: tag.name in ["dt", "span"] and tag.get("class") and any("TextList_label" in cls for cls in tag.get("class")))
-                desc_elem = item.find(lambda tag: tag.name in ["dd", "div", "span"] and tag.get("class") and any("TextList_description" in cls for cls in tag.get("class")))
+                label_elem = item.find(
+                    lambda tag: tag.name in ["dt", "span"]
+                    and tag.get("class")
+                    and any("TextList_label" in cls for cls in tag.get("class"))
+                )
+                desc_elem = item.find(
+                    lambda tag: tag.name in ["dd", "div", "span"]
+                    and tag.get("class")
+                    and any("TextList_description" in cls for cls in tag.get("class"))
+                )
 
                 if not label_elem or not desc_elem:
                     continue
@@ -80,7 +90,9 @@ def extract_interest_guide(soup: BeautifulSoup) -> dict:
         interest_guide["basic_rate_info"] = extract_basic_rate(interest_section)
 
         # 조건별 정보 추출 (텍스트 전체)
-        interest_guide["preferential_details"] = extract_preferential_details(interest_section)
+        interest_guide["preferential_details"] = extract_preferential_details(
+            interest_section
+        )
 
         # 금리 유형 추출
         interest_guide["rate_type"] = extract_rate_type(interest_section)
@@ -112,7 +124,9 @@ def extract_basic_rate(section) -> list[dict]:
     """
     try:
         # 1. 테이블 형태 추출
-        table = section.find("table", class_=lambda c: c and c.startswith("InterestRateTable_table"))
+        table = section.find(
+            "table", class_=lambda c: c and c.startswith("InterestRateTable_table")
+        )
         if table:
             rows = table.find_all("tr")
             rate_info = []
@@ -127,22 +141,28 @@ def extract_basic_rate(section) -> list[dict]:
                     condition = extract_clean_text(cols[0])
                     rate = extract_clean_text(cols[1])
                     if condition and rate:
-                        rate_info.append({
-                            "condition": condition,
-                            "rate": rate
-                        })
+                        rate_info.append({"condition": condition, "rate": rate})
 
             if rate_info:
                 return rate_info
 
         # 2. 텍스트 형태 추출
         # 금리 안내 텍스트 정보가 있는 영역 추출
-        text_info = section.find("div", class_=lambda c: c and c.startswith("InterestRateGuide_area-text-info"))
+        text_info = section.find(
+            "div",
+            class_=lambda c: c and c.startswith("InterestRateGuide_area-text-info"),
+        )
         if text_info:
-            items = text_info.find_all("div", class_=lambda c: c and c.startswith("TextList_item"))
+            items = text_info.find_all(
+                "div", class_=lambda c: c and c.startswith("TextList_item")
+            )
             if items:
                 # 첫 번째 항목이 기본금리 정보일 가능성이 높음
-                desc_elem = items[0].find(lambda tag: tag.name in ["dd", "div", "span"] and tag.get("class") and any("TextList_description" in cls for cls in tag.get("class")))
+                desc_elem = items[0].find(
+                    lambda tag: tag.name in ["dd", "div", "span"]
+                    and tag.get("class")
+                    and any("TextList_description" in cls for cls in tag.get("class"))
+                )
                 if desc_elem:
                     text = extract_clean_text(desc_elem)
                     return [{"text": text}]
@@ -172,14 +192,19 @@ def extract_preferential_details(section) -> dict:
     """
     try:
         # 텍스트 블록 전체 추출
-        text_infos = section.find_all("div", class_=lambda c: c and c.startswith("InterestRateGuide_area-text-info"))
+        text_infos = section.find_all(
+            "div",
+            class_=lambda c: c and c.startswith("InterestRateGuide_area-text-info"),
+        )
         if not text_infos:
             return {}
 
         items = []
         for text_info in text_infos:
             items.extend(
-                text_info.find_all("div", class_=lambda c: c and c.startswith("TextList_item"))
+                text_info.find_all(
+                    "div", class_=lambda c: c and c.startswith("TextList_item")
+                )
             )
 
         found_condition_label = False
@@ -187,8 +212,16 @@ def extract_preferential_details(section) -> dict:
         conditions = []
 
         for item in items:
-            label_elem = item.find(lambda tag: tag.name in ["dt", "span"] and tag.get("class") and any("TextList_label" in cls for cls in tag.get("class")))
-            desc_elem = item.find(lambda tag: tag.name in ["dd", "div", "span"] and tag.get("class") and any("TextList_description" in cls for cls in tag.get("class")))
+            label_elem = item.find(
+                lambda tag: tag.name in ["dt", "span"]
+                and tag.get("class")
+                and any("TextList_label" in cls for cls in tag.get("class"))
+            )
+            desc_elem = item.find(
+                lambda tag: tag.name in ["dd", "div", "span"]
+                and tag.get("class")
+                and any("TextList_description" in cls for cls in tag.get("class"))
+            )
 
             if not desc_elem:
                 continue
@@ -209,16 +242,21 @@ def extract_preferential_details(section) -> dict:
                         index_tag = li.find("b")
                         desc_tag = li.find("p")
                         if desc_tag:
-                            conditions.append({
-                                "index": index_tag.get_text(strip=True) if index_tag else "",
-                                "description": desc_tag.get_text(separator="\n", strip=True)
-                            })
+                            conditions.append(
+                                {
+                                    "index": (
+                                        index_tag.get_text(strip=True)
+                                        if index_tag
+                                        else ""
+                                    ),
+                                    "description": desc_tag.get_text(
+                                        separator="\n", strip=True
+                                    ),
+                                }
+                            )
 
         if found_condition_label:
-            return {
-                "intro": intro,
-                "conditions": conditions
-            }
+            return {"intro": intro, "conditions": conditions}
 
         # 조건별 라벨이 없으면 빈 dict 반환
         return {}
@@ -226,7 +264,6 @@ def extract_preferential_details(section) -> dict:
     except Exception as e:
         print(f"⚠️ 우대조건 추출 실패: {e}")
         return {}
-
 
 
 def extract_rate_type(section: BeautifulSoup) -> str:
@@ -242,12 +279,16 @@ def extract_rate_type(section: BeautifulSoup) -> str:
     try:
         items = section.find_all(class_=lambda c: c and c.startswith("TextList_item"))
         for item in items:
-            label_elem = item.find(lambda tag: tag.name in ["dt", "span"]
-                                   and tag.get("class")
-                                   and any("TextList_label" in cls for cls in tag.get("class")))
-            desc_elem = item.find(lambda tag: tag.name in ["dd", "div", "span"]
-                                  and tag.get("class")
-                                  and any("TextList_description" in cls for cls in tag.get("class")))
+            label_elem = item.find(
+                lambda tag: tag.name in ["dt", "span"]
+                and tag.get("class")
+                and any("TextList_label" in cls for cls in tag.get("class"))
+            )
+            desc_elem = item.find(
+                lambda tag: tag.name in ["dd", "div", "span"]
+                and tag.get("class")
+                and any("TextList_description" in cls for cls in tag.get("class"))
+            )
 
             if label_elem and "유형" in extract_clean_text(label_elem) and desc_elem:
                 return extract_clean_text(desc_elem)
@@ -257,7 +298,6 @@ def extract_rate_type(section: BeautifulSoup) -> str:
     except Exception as e:
         print(f"⚠️ 금리 유형 추출 실패: {e}")
         return ""
-
 
 
 def extract_clean_text(element) -> str:
