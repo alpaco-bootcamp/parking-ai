@@ -10,6 +10,12 @@ black = "*"
 pymongo = "*"
 lxml = "*"
 pydantic = "*"
+python-dotenv = "*"
+langchain = "*"
+langchain-openai = "*"
+langchain-community = "*"
+langchainhub = "*"
+langchain-pinecone = "*"
 
 [dev-packages]
 
