@@ -13,6 +13,7 @@ class FullDocumentModel(BaseModel):
     """전체 문서 형태의 자연어 변환 데이터 모델"""
 
     id: str = Field(..., alias="_id")  # ...: 필수필드, MongoDB: _id로 저장/조회
+    product_code: str
     product_name: str
     content_natural: str  # 벡터 검색용(문장형)
     content_structured: str  # llm 분석용(구조화)
@@ -263,6 +264,7 @@ class ParkingProductNLPConverter:
 
         return FullDocumentModel(
             _id=product.get("_id", ""),
+            product_code=basic_info["product_code"],
             product_name=basic_info["product_name"],
             content_natural=natural_content.strip(),  # 벡터 검색용
             content_structured=structured_content,  # LLM 분석용
@@ -504,7 +506,6 @@ def main():
         print("🚀 파킹통장 자연어 변환 시작")
         converter.process_and_save()
         print("\n🚀 파킹통장 자연어 저장 완료!")
-
 
     except Exception as e:
         print(f"❌ 오류 발생: {str(e)}")
