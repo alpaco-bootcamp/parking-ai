@@ -62,12 +62,17 @@ pipenv shell
 parking-ai/
 │
 ├── agents/             # 에이전트 정의 및 Tool 연동 폴더
+├── api/                # FastAPI 기반 웹 API 모듈 (예정)
+├── common/             # 공통 모듈 및 설정
+│   ├── data.py         # 공통 데이터
+│   └── enums.py        # 프로젝트 전체 Enum 정의
 ├── crawler/            # HTML 크롤링 및 파싱 스크립트 폴더
 ├── data/               # 크롤링된 JSON 데이터 샘플 저장 폴더
 ├── db/                 # MongoDB 연동 및 데이터 처리 유틸리티
 ├── prompts/            # 프롬프트 템플릿 모음
 ├── rag/                # RAG 기반 검색 및 LLM 연동 모듈
 ├── simulator/          # 전략 시뮬레이션 및 이자 계산기
+└── ui/                 # 사용자 인터페이스 (Streamlit 예정)
 ```
 
 
