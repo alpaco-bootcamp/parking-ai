@@ -9,6 +9,7 @@
 """
 
 import os
+import time
 from enum import Enum
 
 from dotenv import load_dotenv
@@ -23,6 +24,10 @@ load_dotenv()
 
 # 설정 상수
 EMBEDDING_MODEL = "text-embedding-3-small"
+BATCH_SIZE = 50  # 한 번에 처리할 문서 수 (4MB 제한 고려)
+MAX_RETRIES = 3  # 재시도 횟수
+RETRY_DELAY = 5  # 재시도 간격 (초)
+
 
 class ProductsEmbeddingProcessor:
     """파킹통장 상품 임베딩 처리 클래스"""
@@ -149,64 +154,177 @@ class ProductsEmbeddingProcessor:
                     document = Document(page_content=content_natural, metadata=metadata)
                     langchain_documents.append(document)
 
-
-            print(f'📀 {doc_type} metatdata: {metadata}')
             print(f"  ✓ {product_name} - Document 생성 완료")
 
         print(f"📊 총 {total_chunks}개 청크 Document 생성 완료")
         return langchain_documents
 
-    def process_vector_store(self, documents: list[dict], doc_type: DocumentTypeEnum) -> None:
+    # ProductsEmbeddingProcessor 클래스에 추가할 메서드
+    def clear_pinecone_index(self, index_name: str) -> None:
         """
-    데이터를 벡터화하여 Pinecone에 저장합니다.
+        Pinecone 인덱스의 모든 벡터를 삭제 (LangChain PineconeVectorStore 사용)
 
-    Args:
-        documents (list[dict]): 컬렉션에서 로드한 데이터
-        doc_type (DocumentTypeEnum): 문서 타입 Enum. 'full' 또는 'chunks' 중 하나를 지정
-    """
+        Args:
+            index_name: 초기화할 Pinecone 인덱스명
+        """
+        try:
+            print(f"🗑️ {index_name} 인덱스 초기화 중...")
+
+            # LangChain PineconeVectorStore로 인덱스 연결
+            vector_store = PineconeVectorStore(
+                embedding=self.embeddings, index_name=index_name
+            )
+
+            # 인덱스의 모든 벡터 삭제
+            vector_store.delete(delete_all=True)
+
+            print(f"✅ {index_name} 인덱스 초기화 완료")
+
+            # 삭제 완료를 위한 잠시 대기
+            import time
+
+            time.sleep(2)
+
+        except Exception as e:
+            print(f"⚠️ {index_name} 인덱스 초기화 실패: {str(e)}")
+            print("ℹ️ 기존 데이터가 없거나 인덱스가 존재하지 않을 수 있습니다.")
+
+    def batch_upload_to_pinecone(
+        self, documents: list[Document], index_name: str
+    ) -> None:
+        """
+        문서를 배치 단위로 Pinecone에 업로드
+
+        Args:
+            documents: 업로드할 Document 리스트
+            index_name: Pinecone 인덱스명
+        """
+        total_docs = len(documents)
+        total_batches = (total_docs + BATCH_SIZE - 1) // BATCH_SIZE
+
+        print(f"📊 총 {total_docs}개 문서를 {total_batches}개 배치로 나누어 업로드")
+
+        successful_uploads = 0
+        failed_uploads = 0
+
+        for batch_idx in range(total_batches):
+            start_idx = batch_idx * BATCH_SIZE
+            end_idx = min(start_idx + BATCH_SIZE, total_docs)
+            batch_documents = documents[start_idx:end_idx]
+
+            batch_size = len(batch_documents)
+            print(
+                f"\n🔄 배치 {batch_idx + 1}/{total_batches} 처리 중... ({batch_size}개 문서)"
+            )
+
+            # 재시도 로직
+            for attempt in range(MAX_RETRIES):
+                try:
+                    # 기존 벡터스토어에 문서 추가
+                    if batch_idx == 0:
+                        # 첫 번째 배치는 새로운 벡터스토어 생성
+                        vector_store = PineconeVectorStore.from_documents(
+                            documents=batch_documents,
+                            embedding=self.embeddings,
+                            index_name=index_name,
+                        )
+                    else:
+                        # 이후 배치는 기존 벡터스토어에 추가
+                        vector_store = PineconeVectorStore(
+                            embedding=self.embeddings, index_name=index_name
+                        )
+                        vector_store.add_documents(batch_documents)
+
+                    successful_uploads += batch_size
+                    print(f"✅ 배치 {batch_idx + 1} 업로드 성공 ({batch_size}개)")
+                    break
+
+                except Exception as e:
+                    attempt_msg = f"시도 {attempt + 1}/{MAX_RETRIES}"
+                    print(
+                        f"❌ 배치 {batch_idx + 1} 업로드 실패 ({attempt_msg}): {str(e)}"
+                    )
+
+                    if attempt < MAX_RETRIES - 1:
+                        print(f"⏳ {RETRY_DELAY}초 후 재시도...")
+                        time.sleep(RETRY_DELAY)
+                    else:
+                        print(f"💥 배치 {batch_idx + 1} 최종 실패")
+                        failed_uploads += batch_size
+
+            # 진행률 표시
+            progress = ((batch_idx + 1) / total_batches) * 100
+            print(
+                f"📈 전체 진행률: {progress:.1f}% ({successful_uploads}/{total_docs})"
+            )
+
+        # 최종 결과 요약
+        print(f"\n📊 업로드 완료!")
+        print(f"  ✅ 성공: {successful_uploads}개")
+        print(f"  ❌ 실패: {failed_uploads}개")
+        print(f"  📈 성공률: {(successful_uploads / total_docs) * 100:.1f}%")
+
+    def process_vector_store(
+        self, documents: list[dict], doc_type: DocumentTypeEnum
+    ) -> None:
+        """
+        데이터를 벡터화하여 Pinecone에 저장합니다.
+
+        Args:
+            documents (list[dict]): 컬렉션에서 로드한 데이터
+            doc_type (DocumentTypeEnum): 문서 타입 Enum. 'full' 또는 'chunks' 중 하나를 지정
+        """
 
         print(f"\n🔄 전체 문서 벡터화 시작 ({len(documents)}개)")
 
         # LangChain Document 형태로 변환
-        documents = self._convert_langchain_documents(documents, doc_type)
-        index_name = self.full_index_name if doc_type == DocumentTypeEnum.FULL else self.chunks_index_name
+        langchain_documents = self._convert_langchain_documents(documents, doc_type)
+        index_name = (
+            self.full_index_name
+            if doc_type == DocumentTypeEnum.FULL
+            else self.chunks_index_name
+        )
 
-        if not documents:
+        if not langchain_documents:
             print(f"❌ {doc_type}: 처리할 문서가 없습니다")
             return
 
         # PineconeVectorStore로 벡터화 및 저장
-        print(f"\n💾 {len(documents)}개 문서를 {index_name}에 벡터화 및 저장 중...")
-
-        vector_store = PineconeVectorStore.from_documents(
-            documents=documents,
-            embedding=self.embeddings,
-            index_name=index_name
+        print(
+            f"\n💾 {len(langchain_documents)}개 문서를 {index_name}에 배치 업로드 중..."
         )
 
-        print(f"✅ 전체 문서 벡터 저장 완료 ({len(documents)}개)")
+        # 🔄 새로 추가: 기존 인덱스 초기화
+        self.clear_pinecone_index(index_name)
+
+        # 배치 처리로 업로드
+        self.batch_upload_to_pinecone(langchain_documents, index_name)
 
     def load_vector_store(self, doc_type: DocumentTypeEnum) -> PineconeVectorStore:
         """
-                doc_type에 맞는 PineconeVectorStore 객체를 반환
+        doc_type에 맞는 PineconeVectorStore 객체를 반환
 
-                Args:
-                    doc_type (DocumentTypeEnum): 문서 타입 Enum. 'full' 또는 'chunks' 중 하나를 지정
+        Args:
+            doc_type (DocumentTypeEnum): 문서 타입 Enum. 'full' 또는 'chunks' 중 하나를 지정
 
-                Returns:
-                    PineconeVectorStore: 지정된 인덱스의 벡터스토어 객체
-                """
+        Returns:
+            PineconeVectorStore: 지정된 인덱스의 벡터스토어 객체
+        """
         print(f"🔌 {doc_type} 벡터스토어 연결 중...")
 
-        index_name = self.full_index_name if doc_type == DocumentTypeEnum.FULL else self.chunks_index_name
-        vector_store = PineconeVectorStore(embedding=self.embeddings, index_name=index_name)
+        index_name = (
+            self.full_index_name
+            if doc_type == DocumentTypeEnum.FULL
+            else self.chunks_index_name
+        )
+        vector_store = PineconeVectorStore(
+            embedding=self.embeddings, index_name=index_name
+        )
 
         print(f"✅ {doc_type} 벡터스토어 연결 완료")
-        print('index_name: ', index_name)
-        print('doc_type: ', doc_type)
+        print("index_name: ", index_name)
+        print("doc_type: ", doc_type)
         return vector_store
-
-
 
     def process_all_data(self) -> None:
         """
@@ -220,15 +338,19 @@ class ProductsEmbeddingProcessor:
             print("=" * 60)
 
             # 1. 전체 문서 처리
-            # full_documents = self._load_documents('products_nlp_full')
-            # self.process_vector_store(documents=full_documents, doc_type=DocumentTypeEnum.FULL)
+            full_documents = self._load_documents("products_nlp_full")
+            self.process_vector_store(
+                documents=full_documents, doc_type=DocumentTypeEnum.FULL
+            )
 
             # 2. 청크 문서 처리
-            chunks_documents = self._load_documents('products_nlp_chunks')
-            self.process_vector_store(documents=chunks_documents, doc_type=DocumentTypeEnum.CHUNKS)
+            chunks_documents = self._load_documents("products_nlp_chunks")
+            self.process_vector_store(
+                documents=chunks_documents, doc_type=DocumentTypeEnum.CHUNKS
+            )
 
         except Exception as e:
-            print(f'⚠️ 벡터스토어 처리중 오류 {e}')
+            print(f"⚠️ 벡터스토어 처리중 오류 {e}")
 
 
 if __name__ == "__main__":
@@ -237,6 +359,7 @@ if __name__ == "__main__":
     # embedding_processor.process_all_data()
 
     # 벡터스토어 불러오기
-    # full_vector_store = embedding_processor.load_vector_store(DocumentTypeEnum.FULL)
+    full_vector_store = embedding_processor.load_vector_store(DocumentTypeEnum.FULL)
     chunk_vector_store = embedding_processor.load_vector_store(DocumentTypeEnum.CHUNKS)
-    # print(f"chunk_vector_store: {full_vector_store}")
+    print(f"full_vector_store: {full_vector_store}")
+    print(f"chunk_vector_store: {chunk_vector_store}")
