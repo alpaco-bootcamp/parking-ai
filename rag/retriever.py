@@ -319,6 +319,39 @@ class ParkingRetriever:
             if i < len(self.test_queries):
                 print("\n" + "=" * 80)
 
+    # 성능 개선을 위한 조건 매칭 기반 재순위
+    @staticmethod
+    def rerank_by_condition_match(results: list, query: str) -> list:
+        """쿼리-조건 매칭도 기반 재순위"""
+
+        def calculate_condition_score(result, query):
+            score = 0
+            product_data = result[0].metadata
+
+            if "마케팅" in query:
+                # 마케팅 관련 조건이 있으면 가점
+                if "marketing_agreement" in product_data.get("condition_tags", []):
+                    score += 0.3
+
+            if "고금리" in query or "7%" in query:
+                # 실제 최고 금리와 쿼리 금리 비교
+                prime_rate = product_data.get("prime_interest_rate", 0)
+                if prime_rate >= 7.0:
+                    score += 0.5
+                elif prime_rate >= 3.0:
+                    score += 0.2
+
+            return score
+
+        # 원본 점수 + 조건 매칭 점수로 재정렬
+        enhanced_results = []
+        for doc, original_score in results:
+            condition_score = calculate_condition_score((doc, original_score), query)
+            final_score = original_score - condition_score  # 낮을수록 좋음
+            enhanced_results.append((doc, final_score))
+
+        return sorted(enhanced_results, key=lambda x: x[1])
+
 
 if __name__ == "__main__":
     # 사용 예시
