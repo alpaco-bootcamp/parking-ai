@@ -64,16 +64,6 @@ class ParkingRetriever:
                 "expected_chunks": ["preferential_details"],
                 "description": "우대조건 검색 테스트",
             },
-            # {
-            #     "query": "OK저축은행 파킹통장 금리가 어떻게 되나요?",
-            #     "expected_chunks": ["basic_info", "basic_rate_info"],
-            #     "description": "특정 은행 상품 검색 테스트",
-            # },
-            # {
-            #     "query": "1000만원 넣을 수 있는 파킹통장 추천해주세요",
-            #     "expected_chunks": ["product_guide", "basic_rate_info"],
-            #     "description": "예치 한도 기반 검색 테스트",
-            # },
         ]
 
         print("✅ ParkingRetriever 초기화 완료")
@@ -90,7 +80,7 @@ class ParkingRetriever:
             )
 
     def llm_with_full(
-        self, query: str, k: int = 5, use_structured: bool = False
+        self, query: str, k: int = 5, use_structured: bool = False, threshold: float = 0.65
     ) -> str:
         """
         Full 벡터스토어로 검색하여 LLM 응답 생성
@@ -99,7 +89,7 @@ class ParkingRetriever:
             query: 검색 쿼리
             k: 검색할 문서 수
             use_structured: True면 content_structured, False면 page_content 사용
-
+            threshold: 최소 유사도 임계값 (기본값 0.0은 충분히 유사한 문서)
         Returns:
             str: LLM 응답
         """
@@ -111,6 +101,15 @@ class ParkingRetriever:
         docs_with_scores = self.full_vector_store.similarity_search_with_score(
             query, k=k
         )
+
+        for doc, score in docs_with_scores:
+            print(f'🅾️️score: {score}')
+            print(f'doc:\n {doc}')
+
+
+        # 2. 임계값 필터링 (score가 threshold 이상인 것만)
+        # filtered_docs = [(doc, score) for doc, score in docs_with_scores if score >= threshold][:k]
+        # print(f"📊 필터링 결과: {len(filtered_docs)}개")
 
         # 2. content_structured 사용하는 경우 page_content 교체
         if use_structured:
@@ -153,6 +152,10 @@ class ParkingRetriever:
         docs_with_scores = self.chunks_vector_store.similarity_search_with_score(
             query, k=k
         )
+
+        for doc, score in docs_with_scores:
+            print(f'🅾️️score: {score}')
+            print(f'doc:\n {doc}')
 
         # 2. content_structured 사용하는 경우 page_content 교체
         if use_structured:
@@ -228,11 +231,11 @@ class ParkingRetriever:
         )
 
         # Context 데이터 생성하여 출력
-        context_data = self._format_docs(documents)
-        print(f"\n📄 검색된 Context 데이터:")
-        print("-" * 60)
-        print(context_data)
-        print("-" * 60)
+        # context_data = self._format_docs(documents)
+        # print(f"\n📄 검색된 Context 데이터:")
+        # print("-" * 60)
+        # print(context_data)
+        # print("-" * 60)
 
         # LCEL 체인 구성
         chain = (
@@ -319,49 +322,19 @@ class ParkingRetriever:
             if i < len(self.test_queries):
                 print("\n" + "=" * 80)
 
-    # 성능 개선을 위한 조건 매칭 기반 재순위
-    @staticmethod
-    def rerank_by_condition_match(results: list, query: str) -> list:
-        """쿼리-조건 매칭도 기반 재순위"""
-
-        def calculate_condition_score(result, query):
-            score = 0
-            product_data = result[0].metadata
-
-            if "마케팅" in query:
-                # 마케팅 관련 조건이 있으면 가점
-                if "marketing_agreement" in product_data.get("condition_tags", []):
-                    score += 0.3
-
-            if "고금리" in query or "7%" in query:
-                # 실제 최고 금리와 쿼리 금리 비교
-                prime_rate = product_data.get("prime_interest_rate", 0)
-                if prime_rate >= 7.0:
-                    score += 0.5
-                elif prime_rate >= 3.0:
-                    score += 0.2
-
-            return score
-
-        # 원본 점수 + 조건 매칭 점수로 재정렬
-        enhanced_results = []
-        for doc, original_score in results:
-            condition_score = calculate_condition_score((doc, original_score), query)
-            final_score = original_score - condition_score  # 낮을수록 좋음
-            enhanced_results.append((doc, final_score))
-
-        return sorted(enhanced_results, key=lambda x: x[1])
-
 
 if __name__ == "__main__":
     # 사용 예시
     retriever = ParkingRetriever()
 
     # 전체 테스트 실행
-    retriever.run_all_tests()
+    # retriever.run_all_tests()
 
     # 특정 쿼리만 테스트하려면:
-    # retriever.run_comparison_test("7% 고금리 파킹통장 찾고 있어요")
+    # retriever.run_comparison_test("마케팅 수신 동의하면 우대금리 받을 수 있는 곳은?")
+    # retriever.run_comparison_test("비대면으로 가입할 수 있는 통장이 있나요?")
+    # retriever.run_comparison_test("급여이체 우대금리")
+    retriever.run_comparison_test("카드 결제 계좌 등록하면 우대금리 받을수 있는 곳은?")
 
     # 개별 함수 사용하려면:
     # full_answer = retriever.llm_with_full("고금리 파킹통장", k=3, use_structured=True)
