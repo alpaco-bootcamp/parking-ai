@@ -1,0 +1,116 @@
+from typing import Any
+from langchain.schema.runnable import RunnableSequence, Runnable
+import pymongo
+
+from agents.eligibility_agent import EligibilityAgent
+from schemas.eligibility_conditions import EligibilityConditions
+from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse
+
+class Pipeline:
+    """
+    파킹통장 추천 멀티에이전트 파이프라인
+
+    현재는 EligibilityAgent만 구현되어 있으며, 향후 FilterAgent, StrategyAgent 등이 추가될 예정
+    """
+
+    def __init__(self, mongodb_client: pymongo.MongoClient) -> None:
+        """
+        파이프라인 초기화
+
+        Args:
+            mongodb_client: MongoDB 클라이언트
+        """
+        self.db = mongodb_client
+
+        # 에이전트 초기화
+        self.eligibility_agent = EligibilityAgent(mongodb_client)
+
+        # TODO: 향후 추가될 에이전트들
+        # self.filter_agent = FilterAgent(mongodb_client)
+        # self.strategy_agent = StrategyAgent(mongodb_client)
+        # self.comparator_agent = ComparatorAgent(mongodb_client)
+        # self.formatter_agent = FormatterAgent(mongodb_client)
+
+        # 현재 파이프라인 구성 (EligibilityAgent만)
+        self.pipeline = self.build_pipeline()
+
+        print("✅ MultiAgentPipeline 초기화 완료")
+
+    def build_pipeline(self) -> Runnable:
+        """
+        에이전트 단일 파이프라인 구성
+
+        Returns:
+            Runnable: 구성된 파이프라인
+        """
+        # 현재는 EligibilityAgent만 있으므로 단일 Runnable 반환
+        return self.eligibility_agent.runnable
+
+    def build_pipeline_todo(self) -> RunnableSequence:
+        """
+        에이전트 파이프라인 구성
+
+        Returns:
+            RunnableSequence: 구성된 파이프라인
+        """
+        # 현재는 EligibilityAgent만 포함
+        # 향후 다른 에이전트들이 순차적으로 추가될 예정
+        pipeline_components = [
+            self.eligibility_agent.runnable,
+            # TODO: 향후 추가될 에이전트들
+            # self.filter_agent.runnable,
+            # self.strategy_agent.runnable,
+            # self.comparator_agent.runnable,
+            # self.formatter_agent.runnable
+        ]
+
+        return RunnableSequence(*pipeline_components)
+
+    def run(self, conditions: EligibilityConditions) -> EligibilitySuccessResponse | EligibilityErrorResponse:
+        """
+        파이프라인 실행
+
+        Args:
+            conditions: 사용자 우대조건
+
+        Returns:
+            EligibilitySuccessResponse | EligibilityErrorResponse: 파이프라인 실행 결과
+        """
+        print("🚀 MultiAgentPipeline 실행 시작")
+
+        try:
+            # 입력 데이터 구성
+            input_data = {
+                "conditions": conditions.model_dump()
+            }
+
+            print(f"   📝 입력 조건: {conditions.model_dump()}")
+
+            # 파이프라인 실행
+            result = self.pipeline.invoke(input_data)
+
+            print("🎯 MultiAgentPipeline 실행 완료")
+            return result
+
+        except Exception as e:
+            print(f"❌ MultiAgentPipeline 실행 오류: {e}")
+            return EligibilityErrorResponse(error=f"파이프라인 실행 오류: {str(e)}")
+
+    def get_pipeline_info(self) -> dict[str, Any]:
+        """
+        파이프라인 정보 반환
+
+        Returns:
+            dict: 파이프라인 구성 정보
+        """
+        return {
+            "total_agents": 1,  # 현재는 EligibilityAgent만
+            "current_agents": ["EligibilityAgent"],
+            "planned_agents": [
+                "FilterAgent",
+                "StrategyAgent",
+                "ComparatorAgent",
+                "FormatterAgent"
+            ],
+            "pipeline_status": "partial_implementation"
+        }

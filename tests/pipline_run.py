@@ -1,0 +1,173 @@
+# tests/run_pipeline_test.py
+"""
+파이프라인 실행 테스트 스크립트
+실제 MongoDB 연결을 통해 파이프라인을 테스트합니다.
+"""
+
+import sys
+import os
+from pymongo import MongoClient
+
+from pipeline.pipeline import Pipeline
+
+# 프로젝트 루트 경로 추가
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+from schemas.eligibility_conditions import EligibilityConditions
+from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse
+from common.data import MONGO_URI
+
+
+def create_test_conditions() -> list[EligibilityConditions]:
+    """다양한 테스트 조건들 생성"""
+
+    # 테스트 케이스 1: 높은 금리, 특별 오퍼
+    test_case_1 = EligibilityConditions(
+        min_interest_rate=1.0,
+        categories=["specialOffer", "online"],
+        special_conditions=["first_banking"]
+    )
+
+    # 테스트 케이스 2: 낮은 금리, 일반 조건
+    test_case_2 = EligibilityConditions(
+        min_interest_rate=2.0,
+        categories=["anyone"],
+        special_conditions=["bank_app", "using_card"]
+    )
+
+    # 테스트 케이스 3: 매우 높은 금리, 모든 조건 (매칭되는 상품이 적을 것으로 예상)
+    test_case_3 = EligibilityConditions(
+        min_interest_rate=6.0,
+        categories=["specialOffer"],
+        special_conditions=["first_banking", "bank_app", "online", "using_salary_account", "using_utility_bill",
+                            "using_card"]
+    )
+
+    return [test_case_1, test_case_2, test_case_3]
+
+
+def run_pipeline_test():
+    """파이프라인 테스트 실행"""
+
+    print("🚀 파킹통장 추천 파이프라인 테스트 시작")
+    print("=" * 60)
+
+    try:
+        # MongoDB 연결
+        client = MongoClient(MONGO_URI)
+        print("✅ MongoDB 연결 성공")
+
+        # 파이프라인 초기화
+        pipeline = Pipeline(client)
+
+        # 파이프라인 정보 출력
+        info = pipeline.get_pipeline_info()
+        print(f"📊 파이프라인 정보:")
+        print(f"   - 현재 에이전트: {info['current_agents']}")
+        print(f"   - 계획된 에이전트: {info['planned_agents']}")
+        print(f"   - 상태: {info['pipeline_status']}")
+        print()
+
+        # 테스트 조건들 생성
+        test_conditions_list = create_test_conditions()
+
+        # 각 테스트 케이스 실행
+        for i, test_conditions in enumerate(test_conditions_list, 1):
+            print(f"🧪 테스트 케이스 {i} 실행")
+            print(f"   조건: 최소금리 {test_conditions.min_interest_rate}%, "
+                  f"카테고리 {test_conditions.categories}")
+            print(f"   우대조건: {test_conditions.special_conditions}")
+
+            # 파이프라인 실행
+            result = pipeline.run(test_conditions)
+
+            # 결과 출력
+            if isinstance(result, EligibilitySuccessResponse):
+                print(f"   ✅ 성공: {result.filter_summary.match_count}개 상품 매칭")
+                print(f"   📈 매칭률: {result.filter_summary.match_rate:.1f}%")
+                print(f"   🎯 다음 에이전트: {result.next_agent}")
+
+                # 매칭된 상품 일부 출력
+                if result.eligible_products:
+                    print(f"   📋 매칭된 상품:")
+                    for product in result.eligible_products:
+                        print(f"      - {product.get('product_name', 'N/A')} "
+                              f"({product.get('company', 'N/A')}) "
+                              f"- 우대금리: {product.get('prime_interest_rate', 'N/A')}%")
+
+            elif isinstance(result, EligibilityErrorResponse):
+                print(f"   ❌ 오류: {result.error}")
+
+            print("-" * 60)
+
+        print("🎯 모든 테스트 케이스 완료")
+
+    except Exception as e:
+        print(f"❌ 테스트 실행 중 오류 발생: {e}")
+        import traceback
+        traceback.print_exc()
+
+    finally:
+        # MongoDB 연결 종료
+        if 'client' in locals():
+            client.close()
+            print("🔌 MongoDB 연결 종료")
+
+
+def run_single_test():
+    """단일 테스트 케이스 실행 (디버깅용)"""
+
+    print("🧪 단일 테스트 케이스 실행")
+
+    try:
+        # MongoDB 연결
+        client = MongoClient(MONGO_URI)
+        pipeline = Pipeline(client)
+
+        # 간단한 테스트 조건
+        test_conditions = EligibilityConditions(
+            min_interest_rate=1.0,
+            categories=["online"],
+            special_conditions=["bank_app", "online"]
+        )
+
+        print(f"📝 테스트 조건: {test_conditions.model_dump()}")
+
+        # 파이프라인 실행
+        result = pipeline.run(test_conditions)
+
+        # 상세 결과 출력
+        print("\n📊 실행 결과:")
+        if hasattr(result, 'model_dump'):
+            try:
+                # ObjectId를 문자열로 변환하여 JSON 직렬화
+                result_dict = result.model_dump()
+
+                # eligible_products에서 ObjectId 변환
+                if 'eligible_products' in result_dict:
+                    for product in result_dict['eligible_products']:
+                        if '_id' in product:
+                            product['_id'] = str(product['_id'])
+
+                import json
+                print(json.dumps(result_dict, indent=2, ensure_ascii=False))
+            except Exception as json_error:
+                print(f"JSON 직렬화 오류: {json_error}")
+                print("결과를 직접 출력:")
+                print(result)
+        else:
+            print(result)
+
+    except Exception as e:
+        print(f"❌ 오류: {e}")
+        import traceback
+        traceback.print_exc()
+
+    finally:
+        if 'client' in locals():
+            client.close()
+
+if __name__ == "__main__":
+
+    run_single_test() # 단일 테스트
+    # run_pipeline_test() # 총 테스트 케이스 테스트
