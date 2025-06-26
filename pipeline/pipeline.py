@@ -6,6 +6,7 @@ from agents.eligibility_agent import EligibilityAgent
 from schemas.eligibility_conditions import EligibilityConditions
 from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse
 
+
 class Pipeline:
     """
     파킹통장 추천 멀티에이전트 파이프라인
@@ -23,7 +24,7 @@ class Pipeline:
         self.db = mongodb_client
 
         # 에이전트 초기화
-        self.eligibility_agent = EligibilityAgent(mongodb_client)
+        self.eligibility_agent = EligibilityAgent(mongodb_client)  # rule_base기반
 
         # TODO: 향후 추가될 에이전트들
         # self.filter_agent = FilterAgent(mongodb_client)
@@ -32,11 +33,11 @@ class Pipeline:
         # self.formatter_agent = FormatterAgent(mongodb_client)
 
         # 현재 파이프라인 구성 (EligibilityAgent만)
-        self.pipeline = self.build_pipeline()
+        self.pipeline = self.build_pipeline_single()
 
         print("✅ MultiAgentPipeline 초기화 완료")
 
-    def build_pipeline(self) -> Runnable:
+    def build_pipeline_single(self) -> Runnable:
         """
         에이전트 단일 파이프라인 구성
 
@@ -46,7 +47,7 @@ class Pipeline:
         # 현재는 EligibilityAgent만 있으므로 단일 Runnable 반환
         return self.eligibility_agent.runnable
 
-    def build_pipeline_todo(self) -> RunnableSequence:
+    def build_pipeline(self) -> RunnableSequence:
         """
         에이전트 파이프라인 구성
 
@@ -66,7 +67,9 @@ class Pipeline:
 
         return RunnableSequence(*pipeline_components)
 
-    def run(self, conditions: EligibilityConditions) -> EligibilitySuccessResponse | EligibilityErrorResponse:
+    def run(
+        self, conditions: EligibilityConditions
+    ) -> EligibilitySuccessResponse | EligibilityErrorResponse:
         """
         파이프라인 실행
 
@@ -80,11 +83,9 @@ class Pipeline:
 
         try:
             # 입력 데이터 구성
-            input_data = {
-                "conditions": conditions.model_dump()
-            }
+            input_data = {"conditions": conditions}
 
-            print(f"   📝 입력 조건: {conditions.model_dump()}")
+            print(f"   📝 입력 조건: {input_data.get('conditions', {})}")
 
             # 파이프라인 실행
             result = self.pipeline.invoke(input_data)
@@ -96,7 +97,8 @@ class Pipeline:
             print(f"❌ MultiAgentPipeline 실행 오류: {e}")
             return EligibilityErrorResponse(error=f"파이프라인 실행 오류: {str(e)}")
 
-    def get_pipeline_info(self) -> dict[str, Any]:
+    @staticmethod
+    def get_pipeline_info() -> dict[str, Any]:
         """
         파이프라인 정보 반환
 
@@ -110,7 +112,7 @@ class Pipeline:
                 "FilterAgent",
                 "StrategyAgent",
                 "ComparatorAgent",
-                "FormatterAgent"
+                "FormatterAgent",
             ],
-            "pipeline_status": "partial_implementation"
+            "pipeline_status": "partial_implementation",
         }

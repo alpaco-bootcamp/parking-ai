@@ -25,22 +25,28 @@ def create_test_conditions() -> list[EligibilityConditions]:
     test_case_1 = EligibilityConditions(
         min_interest_rate=1.0,
         categories=["specialOffer", "online"],
-        special_conditions=["first_banking"]
+        special_conditions=["first_banking"],
     )
 
     # 테스트 케이스 2: 낮은 금리, 일반 조건
     test_case_2 = EligibilityConditions(
         min_interest_rate=2.0,
         categories=["anyone"],
-        special_conditions=["bank_app", "using_card"]
+        special_conditions=["bank_app", "using_card"],
     )
 
     # 테스트 케이스 3: 매우 높은 금리, 모든 조건 (매칭되는 상품이 적을 것으로 예상)
     test_case_3 = EligibilityConditions(
         min_interest_rate=6.0,
         categories=["specialOffer"],
-        special_conditions=["first_banking", "bank_app", "online", "using_salary_account", "using_utility_bill",
-                            "using_card"]
+        special_conditions=[
+            "first_banking",
+            "bank_app",
+            "online",
+            "using_salary_account",
+            "using_utility_bill",
+            "using_card",
+        ],
     )
 
     return [test_case_1, test_case_2, test_case_3]
@@ -69,17 +75,19 @@ def run_pipeline_test():
         print()
 
         # 테스트 조건들 생성
-        test_conditions_list = create_test_conditions()
+        test_condition_list = create_test_conditions()
 
         # 각 테스트 케이스 실행
-        for i, test_conditions in enumerate(test_conditions_list, 1):
+        for i, test_condition in enumerate(test_condition_list, 1):
             print(f"🧪 테스트 케이스 {i} 실행")
-            print(f"   조건: 최소금리 {test_conditions.min_interest_rate}%, "
-                  f"카테고리 {test_conditions.categories}")
-            print(f"   우대조건: {test_conditions.special_conditions}")
+            print(
+                f"   조건: 최소금리 {test_condition.min_interest_rate}%, "
+                f"카테고리 {test_condition.categories}"
+            )
+            print(f"   우대조건: {test_condition.special_conditions}")
 
             # 파이프라인 실행
-            result = pipeline.run(test_conditions)
+            result = pipeline.run(test_condition)
 
             # 결과 출력
             if isinstance(result, EligibilitySuccessResponse):
@@ -91,9 +99,11 @@ def run_pipeline_test():
                 if result.eligible_products:
                     print(f"   📋 매칭된 상품:")
                     for product in result.eligible_products:
-                        print(f"      - {product.get('product_name', 'N/A')} "
-                              f"({product.get('company', 'N/A')}) "
-                              f"- 우대금리: {product.get('prime_interest_rate', 'N/A')}%")
+                        print(
+                            f"      - {product.get('product_name', 'N/A')} "
+                            f"({product.get('company', 'N/A')}) "
+                            f"- 우대금리: {product.get('prime_interest_rate', 'N/A')}%"
+                        )
 
             elif isinstance(result, EligibilityErrorResponse):
                 print(f"   ❌ 오류: {result.error}")
@@ -105,11 +115,12 @@ def run_pipeline_test():
     except Exception as e:
         print(f"❌ 테스트 실행 중 오류 발생: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:
         # MongoDB 연결 종료
-        if 'client' in locals():
+        if "client" in locals():
             client.close()
             print("🔌 MongoDB 연결 종료")
 
@@ -128,46 +139,47 @@ def run_single_test():
         test_conditions = EligibilityConditions(
             min_interest_rate=1.0,
             categories=["online"],
-            special_conditions=["bank_app", "online"]
+            special_conditions=["bank_app", "online"],
         )
 
-        print(f"📝 테스트 조건: {test_conditions.model_dump()}")
+        print(f"📝 테스트 조건: {test_conditions}")
 
         # 파이프라인 실행
         result = pipeline.run(test_conditions)
 
         # 상세 결과 출력
         print("\n📊 실행 결과:")
-        if hasattr(result, 'model_dump'):
-            try:
-                # ObjectId를 문자열로 변환하여 JSON 직렬화
-                result_dict = result.model_dump()
+        # 결과 출력
+        if isinstance(result, EligibilitySuccessResponse):
+            print(f"   ✅ 성공: {result.filter_summary.match_count}개 상품 매칭")
+            print(f"   📈 매칭률: {result.filter_summary.match_rate:.1f}%")
+            print(f"   🎯 다음 에이전트: {result.next_agent}")
 
-                # eligible_products에서 ObjectId 변환
-                if 'eligible_products' in result_dict:
-                    for product in result_dict['eligible_products']:
-                        if '_id' in product:
-                            product['_id'] = str(product['_id'])
+            # 매칭된 상품 일부 출력
+            if result.eligible_products:
+                print(f"   📋 매칭된 상품:")
+                for product in result.eligible_products:
+                    print(
+                        f"      - {product.get('product_name', 'N/A')} "
+                        f"({product.get('company', 'N/A')}) "
+                        f"- 우대금리: {product.get('prime_interest_rate', 'N/A')}%"
+                    )
 
-                import json
-                print(json.dumps(result_dict, indent=2, ensure_ascii=False))
-            except Exception as json_error:
-                print(f"JSON 직렬화 오류: {json_error}")
-                print("결과를 직접 출력:")
-                print(result)
-        else:
-            print(result)
+        elif isinstance(result, EligibilityErrorResponse):
+            print(f"   ❌ 오류: {result.error}")
 
     except Exception as e:
         print(f"❌ 오류: {e}")
         import traceback
+
         traceback.print_exc()
 
     finally:
-        if 'client' in locals():
+        if "client" in locals():
             client.close()
+
 
 if __name__ == "__main__":
 
-    run_single_test() # 단일 테스트
-    # run_pipeline_test() # 총 테스트 케이스 테스트
+    # run_single_test() # 단일 테스트
+    run_pipeline_test()  # 총 테스트 케이스 테스트

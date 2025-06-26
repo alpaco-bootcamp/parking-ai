@@ -356,7 +356,7 @@ class ProductsEmbeddingProcessor:
 if __name__ == "__main__":
     embedding_processor = ProductsEmbeddingProcessor()
     # 벡터화 및 저장
-    # embedding_processor.process_all_data()
+    embedding_processor.process_all_data()
 
     # 벡터스토어 불러오기
     full_vector_store = embedding_processor.load_vector_store(DocumentTypeEnum.FULL)

@@ -1,12 +1,14 @@
 """
 필터링 결과 스키마 정의
 """
+
 from pydantic import BaseModel
 from datetime import datetime
 
 
 class EligibilityFilterResult(BaseModel):
     """필터링 결과"""
+
     matched_products: list[dict]  # 조건 통과 상품
     excluded_products: list[dict]  # 조건 미달 상품
     total_analyzed: int  # 총 분석 상품 수
@@ -17,8 +19,13 @@ class EligibilityFilterResult(BaseModel):
     filter_conditions: dict  # 필터링 조건 요약
 
     @classmethod
-    def create_result(cls, matched: list[dict], excluded: list[dict],
-                      exclusion_reasons: dict[str, str], conditions) -> "FilterResult":
+    def create_result(
+        cls,
+        matched: list[dict],
+        excluded: list[dict],
+        exclusion_reasons: dict[str, str],
+        conditions,
+    ) -> "FilterResult":
         """
         필터링 결과 생성
 
@@ -45,6 +52,6 @@ class EligibilityFilterResult(BaseModel):
             filter_conditions={
                 "min_interest_rate": conditions.min_interest_rate,
                 "categories": conditions.categories,
-                "special_conditions": conditions.special_conditions
-            }
+                "special_conditions": conditions.special_conditions,
+            },
         )

@@ -7,7 +7,7 @@ from schemas.eligibility_conditions import EligibilityConditions
 from schemas.agent_responses import (
     EligibilitySuccessResponse,
     EligibilityErrorResponse,
-    FilterSummary
+    FilterSummary,
 )
 from tools.condition_matcher import ConditionMatcherTool
 
@@ -43,7 +43,9 @@ class EligibilityAgent:
         return EligibilityErrorResponse(error=error_message)
 
     @staticmethod
-    def _format_success_response(filter_result, conditions: EligibilityConditions) -> EligibilitySuccessResponse:
+    def _format_success_response(
+        filter_result, conditions: EligibilityConditions
+    ) -> EligibilitySuccessResponse:
         """
         성공적인 필터링 결과를 스키마 기반으로 포맷팅
 
@@ -59,39 +61,33 @@ class EligibilityAgent:
             match_count=filter_result.match_count,
             excluded_count=len(filter_result.excluded_products),
             match_rate=filter_result.match_rate,
-            execution_time=getattr(filter_result, 'execution_time', None)
+            execution_time=getattr(filter_result, "execution_time", None),
         )
 
         return EligibilitySuccessResponse(
             eligible_products=filter_result.matched_products,
             filter_summary=filter_summary,
-            user_conditions=conditions
+            user_conditions=conditions,
         )
 
-    def execute(self, input_data: dict) -> EligibilitySuccessResponse | EligibilityErrorResponse:
+    def execute(
+        self, input_data: dict[str, EligibilityConditions]
+    ) -> EligibilitySuccessResponse | EligibilityErrorResponse:
         """
         에이전트 실행 - Runnable 인터페이스
 
         Args:
             input_data: 입력 데이터 딕셔너리
-            - {"conditions": {...}}
+            - {"conditions": EligibilityConditions}
 
         Returns:
             EligibilitySuccessResponse | EligibilityErrorResponse: 필터링 결과
         """
         print("🚀 EligibilityAgent 실행 시작")
 
-        conditions_data = input_data.get("conditions")
-        if not conditions_data:
+        conditions = input_data.get("conditions")
+        if not conditions:
             return self._format_error_response("조건 데이터가 제공되지 않았습니다.")
-
-        # dict를 EligibilityConditions로 변환
-        if isinstance(conditions_data, dict):
-            conditions = EligibilityConditions(**conditions_data)
-        elif isinstance(conditions_data, EligibilityConditions):
-            conditions = conditions_data
-        else:
-            return self._format_error_response(f"지원되지 않는 조건 데이터 타입: {type(conditions_data)}")
 
         print(f"   📋 최소 금리: {conditions.min_interest_rate}%")
         print(f"   🏷️ 카테고리: {conditions.categories}")
@@ -106,19 +102,18 @@ class EligibilityAgent:
 
             print("   🔍 Rule-based 조건 매칭 실행 중...")
             filter_result = self.condition_matcher.run(
-                conditions=conditions,
-                products=all_products
+                conditions=conditions, products=all_products
             )
 
             print(f"   ✅ 조건 통과 상품: {filter_result.match_count}개")
             print(f"   ❌ 조건 미달 상품: {len(filter_result.excluded_products)}개")
             print(f"   📈 매칭률: {filter_result.match_rate:.1f}%")
-            print(f"🎯 EligibilityAgent 실행 완료 - 적합 상품: {filter_result.match_count}개")
+            print(
+                f"🎯 EligibilityAgent 실행 완료 - 적합 상품: {filter_result.match_count}개"
+            )
 
             return self._format_success_response(filter_result, conditions)
 
         except Exception as e:
             print(f"❌ EligibilityAgent 실행 오류: {e}")
             return self._format_error_response(str(e))
-
-

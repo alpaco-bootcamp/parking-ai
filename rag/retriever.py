@@ -25,12 +25,14 @@ from langchain_core.prompts import ChatPromptTemplate
 
 load_dotenv()
 
+
 @dataclass
 class ContentTypeEnum(str, Enum):
     """LLM에 전달할 컨텐츠 타입"""
 
     PAGE_CONTENT = "page_content"  # 벡터화된 자연어 텍스트 (기본 LangChain 방식)
     CONTENT_STRUCTURED = "content_structured"  # 구조화된 메타데이터 텍스트
+
 
 class ParkingRetriever:
     """파킹통장 RAG 검색 시스템"""
@@ -80,7 +82,11 @@ class ParkingRetriever:
             )
 
     def llm_with_full(
-        self, query: str, k: int = 5, use_structured: bool = False, threshold: float = 0.65
+        self,
+        query: str,
+        k: int = 5,
+        use_structured: bool = False,
+        threshold: float = 0.65,
     ) -> str:
         """
         Full 벡터스토어로 검색하여 LLM 응답 생성
@@ -103,9 +109,8 @@ class ParkingRetriever:
         )
 
         for doc, score in docs_with_scores:
-            print(f'🅾️️score: {score}')
-            print(f'doc:\n {doc}')
-
+            print(f"🅾️️score: {score}")
+            print(f"doc:\n {doc}")
 
         # 2. 임계값 필터링 (score가 threshold 이상인 것만)
         # filtered_docs = [(doc, score) for doc, score in docs_with_scores if score >= threshold][:k]
@@ -154,8 +159,8 @@ class ParkingRetriever:
         )
 
         for doc, score in docs_with_scores:
-            print(f'🅾️️score: {score}')
-            print(f'doc:\n {doc}')
+            print(f"🅾️️score: {score}")
+            print(f"doc:\n {doc}")
 
         # 2. content_structured 사용하는 경우 page_content 교체
         if use_structured:
@@ -209,7 +214,6 @@ class ParkingRetriever:
             str: LLM이 생성한 파킹통장 추천 전략
         """
 
-
         # 프롬프트 템플릿 정의
         prompt_template = ChatPromptTemplate.from_template(
             """당신은 파킹통장 전문가입니다. 주어진 검색 결과를 바탕으로 사용자의 질의에 대해 적절한 파킹통장을 추천해주세요.
@@ -240,7 +244,8 @@ class ParkingRetriever:
         # LCEL 체인 구성
         chain = (
             {
-                "context": RunnableLambda(lambda x: x["documents"]) | RunnableLambda(self._format_docs),  # documents → format_docs
+                "context": RunnableLambda(lambda x: x["documents"])
+                | RunnableLambda(self._format_docs),  # documents → format_docs
                 "query": lambda x: x["query"],
                 "doc_source": lambda x: x["doc_source"],
                 "content_type": lambda x: x["content_type"],
@@ -260,7 +265,7 @@ class ParkingRetriever:
                     "content_type": content_type.value,
                 }
             )
-            return response # 문자열
+            return response  # 문자열
         except Exception as e:
             return f"[{doc_source} - {content_type.value} 기반 응답 생성 중 오류 발생: {e}]"
 
@@ -284,7 +289,7 @@ class ParkingRetriever:
         print("\n1️⃣ Full 벡터스토어 + page_content")
         print("-" * 40)
         full_page_answer = self.llm_with_full(query, k=k_full, use_structured=False)
-        print(f'🔥Full + page_content답변: \n {full_page_answer}')
+        print(f"🔥Full + page_content답변: \n {full_page_answer}")
 
         # 2. Full + content_structured
         print("\n2️⃣ Full 벡터스토어 + content_structured")
@@ -292,7 +297,7 @@ class ParkingRetriever:
         full_structured_answer = self.llm_with_full(
             query, k=k_full, use_structured=True
         )
-        print(f'🔥Full + content_structured답변: \n {full_structured_answer}')
+        print(f"🔥Full + content_structured답변: \n {full_structured_answer}")
 
         # 3. Chunks + page_content
         print("\n3️⃣ Chunks 벡터스토어 + page_content")
@@ -300,7 +305,7 @@ class ParkingRetriever:
         chunks_page_answer = self.llm_with_chunks(
             query, k=k_chunks, use_structured=False
         )
-        print(f'🔥Chunks + page_content답변: \n {chunks_page_answer}')
+        print(f"🔥Chunks + page_content답변: \n {chunks_page_answer}")
 
         # 4. Chunks + content_structured
         print("\n4️⃣ Chunks 벡터스토어 + content_structured")
@@ -308,7 +313,7 @@ class ParkingRetriever:
         chunks_structured_answer = self.llm_with_chunks(
             query, k=k_chunks, use_structured=True
         )
-        print(f'🔥Chunks + content_structured답변: \n {chunks_structured_answer}')
+        print(f"🔥Chunks + content_structured답변: \n {chunks_structured_answer}")
 
     def run_all_tests(self):
         """모든 테스트 쿼리에 대해 비교 테스트 실행"""

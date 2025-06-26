@@ -15,7 +15,7 @@ from common.data import (
     DETAIL_COLLECTION_NAME,
 )
 from crawler.extra_data import extract_product_guide, extract_interest_guide
-from db.save_db import insert_document, get_all_documents
+from db.save_db import insert_document, get_all_documents, drop_collection
 
 
 def create_basic_product(product: dict) -> dict:
@@ -233,13 +233,15 @@ def fetch_parking_list() -> list[dict]:
 
 
 def fetch():
+    # 각 컬렉션 초기화
+    drop_collection(BASIC_COLLECTION_NAME)
+    drop_collection(DETAIL_COLLECTION_NAME)
+
     # 파킹통장 상품 리스트 크롤링
-    # product_list = fetch_parking_list()
+    product_list = fetch_parking_list()
 
     # 크롤링한 데이터 저장
-    # insert_document(data=product_list, collection_name=BASIC_COLLECTION_NAME)
-
-    # drop_collection(BASIC_COLLECTION_NAME)
+    insert_document(data=product_list, collection_name=BASIC_COLLECTION_NAME)
 
     # 각 파킹통장 detail
     product_detail_list = fetch_parking_detail()
