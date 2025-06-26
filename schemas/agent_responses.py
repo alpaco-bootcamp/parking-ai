@@ -4,6 +4,13 @@ from typing import Optional, Any
 from schemas.eligibility_conditions import EligibilityConditions
 
 
+class SimpleProduct(BaseModel):
+    """간단한 상품 정보"""
+
+    product_code: str = Field(description="상품 코드")
+    product_name: str = Field(description="상품명")
+
+
 class FilterSummary(BaseModel):
     """필터링 결과 요약 정보"""
 
@@ -17,13 +24,13 @@ class FilterSummary(BaseModel):
 class EligibilitySuccessResponse(BaseModel):
     """EligibilityAgent 성공 응답"""
 
-    eligible_products: list[dict] = Field(description="필터링된 상품 목록")
+    eligible_products: list[SimpleProduct] = Field(description="필터링된 상품 목록")
     filter_summary: FilterSummary = Field(description="필터링 결과 요약")
     user_conditions: EligibilityConditions = Field(description="사용자 조건")
     processing_step: str = Field(
         default="eligibility_completed", description="처리 단계"
     )
-    next_agent: str = Field(default="FilterAgent", description="다음 에이전트")
+    next_agent: str = Field(default="FilterQuestionAgent", description="다음 에이전트")
     success: bool = Field(default=True, description="성공 여부")
     error: Optional[str] = Field(default=None, description="에러 메시지")
 

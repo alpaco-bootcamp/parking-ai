@@ -8,6 +8,7 @@ from schemas.agent_responses import (
     EligibilitySuccessResponse,
     EligibilityErrorResponse,
     FilterSummary,
+    SimpleProduct,
 )
 from tools.condition_matcher import ConditionMatcherTool
 

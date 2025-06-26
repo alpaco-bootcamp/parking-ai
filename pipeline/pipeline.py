@@ -11,7 +11,7 @@ class Pipeline:
     """
     파킹통장 추천 멀티에이전트 파이프라인
 
-    현재는 EligibilityAgent만 구현되어 있으며, 향후 FilterAgent, StrategyAgent 등이 추가될 예정
+    현재는 EligibilityAgent만 구현되어 있으며, 향후 FilterQuestionAgent, StrategyAgent 등이 추가될 예정
     """
 
     def __init__(self, mongodb_client: pymongo.MongoClient) -> None:
@@ -27,7 +27,7 @@ class Pipeline:
         self.eligibility_agent = EligibilityAgent(mongodb_client)  # rule_base기반
 
         # TODO: 향후 추가될 에이전트들
-        # self.filter_agent = FilterAgent(mongodb_client)
+        # self.filter_agent = FilterQuestionAgent(mongodb_client)
         # self.strategy_agent = StrategyAgent(mongodb_client)
         # self.comparator_agent = ComparatorAgent(mongodb_client)
         # self.formatter_agent = FormatterAgent(mongodb_client)
@@ -59,7 +59,7 @@ class Pipeline:
         pipeline_components = [
             self.eligibility_agent.runnable,
             # TODO: 향후 추가될 에이전트들
-            # self.filter_agent.runnable,
+            # self.filter_agent.runnable, # 역질문
             # self.strategy_agent.runnable,
             # self.comparator_agent.runnable,
             # self.formatter_agent.runnable
@@ -109,7 +109,7 @@ class Pipeline:
             "total_agents": 1,  # 현재는 EligibilityAgent만
             "current_agents": ["EligibilityAgent"],
             "planned_agents": [
-                "FilterAgent",
+                "FilterQuestionAgent",
                 "StrategyAgent",
                 "ComparatorAgent",
                 "FormatterAgent",

@@ -5,12 +5,14 @@
 from pydantic import BaseModel
 from datetime import datetime
 
+from schemas.agent_responses import SimpleProduct
+
 
 class EligibilityFilterResult(BaseModel):
     """필터링 결과"""
 
-    matched_products: list[dict]  # 조건 통과 상품
-    excluded_products: list[dict]  # 조건 미달 상품
+    matched_products: list[SimpleProduct]  # 조건 통과 상품
+    excluded_products: list[SimpleProduct]  # 조건 미달 상품
     total_analyzed: int  # 총 분석 상품 수
     match_count: int  # 매칭된 상품 수
     match_rate: float  # 매칭률
@@ -25,7 +27,7 @@ class EligibilityFilterResult(BaseModel):
         excluded: list[dict],
         exclusion_reasons: dict[str, str],
         conditions,
-    ) -> "FilterResult":
+    ) -> "EligibilityFilterResult":
         """
         필터링 결과 생성
 
@@ -36,10 +38,26 @@ class EligibilityFilterResult(BaseModel):
             conditions: 사용자 조건
 
         Returns:
-            FilterResult: 완성된 결과 객체
+            EligibilityFilterResult: 완성된 결과 객체
         """
         total = len(matched) + len(excluded)
         match_rate = (len(matched) / total * 100) if total > 0 else 0
+
+        matched = [
+            SimpleProduct(
+                product_code=product.get("product_code", ""),
+                product_name=product.get("product_name", ""),
+            )
+            for product in matched
+        ]
+
+        excluded = [
+            SimpleProduct(
+                product_code=product.get("product_code", ""),
+                product_name=product.get("product_name", ""),
+            )
+            for product in excluded
+        ]
 
         return cls(
             matched_products=matched,

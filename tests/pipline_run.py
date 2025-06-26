@@ -99,11 +99,7 @@ def run_pipeline_test():
                 if result.eligible_products:
                     print(f"   📋 매칭된 상품:")
                     for product in result.eligible_products:
-                        print(
-                            f"      - {product.get('product_name', 'N/A')} "
-                            f"({product.get('company', 'N/A')}) "
-                            f"- 우대금리: {product.get('prime_interest_rate', 'N/A')}%"
-                        )
+                        print(f" 상품: {product.product_name} ")
 
             elif isinstance(result, EligibilityErrorResponse):
                 print(f"   ❌ 오류: {result.error}")
@@ -159,11 +155,7 @@ def run_single_test():
             if result.eligible_products:
                 print(f"   📋 매칭된 상품:")
                 for product in result.eligible_products:
-                    print(
-                        f"      - {product.get('product_name', 'N/A')} "
-                        f"({product.get('company', 'N/A')}) "
-                        f"- 우대금리: {product.get('prime_interest_rate', 'N/A')}%"
-                    )
+                    print(f" 상품: {product.product_name} ")
 
         elif isinstance(result, EligibilityErrorResponse):
             print(f"   ❌ 오류: {result.error}")
