@@ -37,7 +37,7 @@ class ConditionExtractorResult(BaseModel):
 
 
 """
-Tool 2: PatternAnalyzerTool 스키
+Tool 2: PatternAnalyzerTool 스키마
 역할: LLM 기반 우대조건 패턴 분석 및 RAG 쿼리 생성
 """
 

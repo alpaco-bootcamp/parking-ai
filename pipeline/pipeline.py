@@ -21,7 +21,6 @@ class Pipeline:
 
         # 에이전트 초기화
         self.eligibility_agent = EligibilityAgent()  # rule_base기반
-
         # TODO: 향후 추가될 에이전트들
         # self.filter_agent = FilterQuestionAgent()
         # self.strategy_agent = StrategyAgent()
@@ -50,8 +49,7 @@ class Pipeline:
         Returns:
             RunnableSequence: 구성된 파이프라인
         """
-        # 현재는 EligibilityAgent만 포함
-        # 향후 다른 에이전트들이 순차적으로 추가될 예정
+        # 각 단계의 출력이 다음 단계의 입력이 됨
         pipeline_components = [
             self.eligibility_agent.runnable,
             # TODO: 향후 추가될 에이전트들
