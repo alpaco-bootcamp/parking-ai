@@ -4,13 +4,11 @@ Tool 1: ConditionExtractorTool
 """
 
 from langchain.tools import BaseTool
-import pymongo
 from pymongo import MongoClient
-from pymongo.collection import Collection
 
 from common.data import NLP_CHUNKS_COLLECTION_NAME, MONGO_URI, DB_NAME
 from schemas.agent_responses import EligibilitySuccessResponse
-from schemas.question_filter_schema import ConditionExtractorResult, RateConditionChunk, ChunkData
+from schemas.question_filter_schema import ConditionExtractorResult, ExtractedProduct, ChunkData
 
 
 class ConditionExtractorTool(BaseTool):
@@ -35,7 +33,7 @@ class ConditionExtractorTool(BaseTool):
         self.db = client[DB_NAME]
         self.eligibility_response = eligibility_response
 
-    def extract_rate_condition_chunks(self) -> ConditionExtractorResult:
+    def extract_product_result(self) -> ConditionExtractorResult:
         """
         MongoDB에서 우대조건 및 금리정보 청크 데이터 조회 및 처리
 
@@ -66,7 +64,7 @@ class ConditionExtractorTool(BaseTool):
             total_chunk_count = sum(len(chunk.chunks) for chunk in processed_chunks)
 
             result = ConditionExtractorResult(
-                rate_condition_chunks=processed_chunks,
+                products=processed_chunks,
                 total_products=len(processed_chunks),
                 total_chunks=total_chunk_count,
                 success=True
@@ -77,14 +75,14 @@ class ConditionExtractorTool(BaseTool):
         except Exception as e:
             print(f"❌ 우대조건 및 금리정보 청크 조회 실패: {str(e)}")
             return ConditionExtractorResult(
-                rate_condition_chunks=[],
+                products=[],
                 total_products=0,
                 total_chunks=0,
                 success=False
             )
 
     @staticmethod
-    def _process_chunks_to_schema(raw_chunks: list[dict]) -> list[RateConditionChunk]:
+    def _process_chunks_to_schema(raw_chunks: list[dict]) -> list[ExtractedProduct]:
         """
         MongoDB 원본 데이터를 스키마 형태로 변환
 
@@ -109,7 +107,7 @@ class ConditionExtractorTool(BaseTool):
                     filtered_chunks.append(chunk_schema)
 
             if filtered_chunks:
-                rate_condition_chunk = RateConditionChunk(
+                rate_condition_chunk = ExtractedProduct(
                     product_code=chunk_data.get("product_code", ""),
                     product_name=chunk_data.get("product_name", ""),
                     chunks=filtered_chunks
@@ -152,14 +150,14 @@ class ConditionExtractorTool(BaseTool):
         if not self._validate_eligibility_data(self.eligibility_response):
             print("❌ EligibilityAgent 응답 데이터 검증 실패")
             return ConditionExtractorResult(
-                rate_condition_chunks=[],
+                products=[],
                 total_products=0,
                 total_chunks=0,
                 success=False
             )
 
         # 2. 우대조건 및 금리정보 청크 데이터 조회 및 처리
-        result = self.extract_rate_condition_chunks()
+        result = self.extract_product_result()
 
         if not result.success:
             print("❌ 우대조건 및 금리정보 청크 조회 실패")

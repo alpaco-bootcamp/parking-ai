@@ -59,12 +59,8 @@ def run_pipeline_test():
     print("=" * 60)
 
     try:
-        # MongoDB 연결
-        client = MongoClient(MONGO_URI)
-        print("✅ MongoDB 연결 성공")
-
         # 파이프라인 초기화
-        pipeline = Pipeline(client)
+        pipeline = Pipeline()
 
         # 파이프라인 정보 출력
         info = pipeline.get_pipeline_info()
@@ -113,12 +109,6 @@ def run_pipeline_test():
         import traceback
 
         traceback.print_exc()
-
-    finally:
-        # MongoDB 연결 종료
-        if "client" in locals():
-            client.close()
-            print("🔌 MongoDB 연결 종료")
 
 
 def run_single_test():
