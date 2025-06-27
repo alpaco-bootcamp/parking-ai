@@ -4,7 +4,7 @@ from pydantic import BaseModel, Field
 class ChunkData(BaseModel):
     """개별 청크 데이터"""
     chunk_type: str = Field(description="청크 타입 (basic_rate_info, preferential_details)")
-    chunk_index: int = Field(description="청크 타입 (basic_rate_info, preferential_details)")
+    chunk_index: int = Field(description="청크 인덱스 (2, 3)")
     content_natural: str = Field(description="자연어 청크 내용")
 
 
