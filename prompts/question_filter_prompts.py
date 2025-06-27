@@ -2,21 +2,29 @@
 QuestionFilterAgent용 프롬프트 템플릿 모음
 LLM 기반 패턴 분석, 질문 생성, 응답 검증 등을 위한 구조화된 프롬프트 제공
 """
+
 from pydantic import BaseModel, Field
+
 
 class DataSection(BaseModel):
     """프롬프트 데이터 섹션 스키마"""
-    title: str = Field(description="섹션 제목 (예: '금리정보 데이터', '우대조건 데이터')")
-    content: str = Field(description="섹션 내용 (예: '[토스뱅크] 기본금리 2.5%\\n[카카오뱅크] 우대금리 3.0%')")
+
+    title: str = Field(
+        description="섹션 제목 (예: '금리정보 데이터', '우대조건 데이터')"
+    )
+    content: str = Field(
+        description="섹션 내용 (예: '[토스뱅크] 기본금리 2.5%\\n[카카오뱅크] 우대금리 3.0%')"
+    )
+
 
 class QuestionFilterPrompts:
     """QuestionFilterAgent의 모든 프롬프트를 관리하는 클래스"""
 
     def pattern_analysis(
-            self,
-            rate_info_texts: list[str],
-            preferential_texts: list[str],
-            bank_names: list[str]
+        self,
+        rate_info_texts: list[str],
+        preferential_texts: list[str],
+        bank_names: list[str],
     ) -> str:
         """
         금리정보와 우대조건을 구분하여 패턴 분석 프롬프트 생성
@@ -34,18 +42,18 @@ class QuestionFilterPrompts:
         rate_info_section = self._format_data_section(
             title="금리정보 데이터",
             texts=rate_info_texts,
-            empty_message="금리정보 데이터 없음"
+            empty_message="금리정보 데이터 없음",
         )
 
         # 우대조건 섹션 구성
         preferential_section = self._format_data_section(
             title="우대조건 데이터",
             texts=preferential_texts,
-            empty_message="우대조건 데이터 없음"
+            empty_message="우대조건 데이터 없음",
         )
 
         # 은행명 목록
-        bank_list = ', '.join(bank_names) if bank_names else "분석 대상 은행 없음"
+        bank_list = ", ".join(bank_names) if bank_names else "분석 대상 은행 없음"
 
         prompt = f"""
 다음 파킹통장 데이터를 분석하여 금리정보와 우대조건의 공통 패턴을 추출해주세요.
@@ -113,7 +121,9 @@ class QuestionFilterPrompts:
         return prompt
 
     @staticmethod
-    def _format_data_section(title: str, texts: list[str], empty_message: str) -> dict[str, str]:
+    def _format_data_section(
+        title: str, texts: list[str], empty_message: str
+    ) -> dict[str, str]:
         """
         데이터 섹션을 포맷팅하여 프롬프트에 삽입 가능한 형태로 변환
 
@@ -130,12 +140,9 @@ class QuestionFilterPrompts:
         else:
             # 텍스트가 너무 많은 경우 처음 20개만 표시하고 나머지는 생략 표시
             display_texts = texts[:20]
-            content = '\n'.join(display_texts)
+            content = "\n".join(display_texts)
 
             if len(texts) > 20:
                 content += f"\n... (총 {len(texts)}개 중 20개만 표시)"
 
-        return {
-            "title": title,
-            "content": content
-        }
+        return {"title": title, "content": content}

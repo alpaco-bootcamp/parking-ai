@@ -158,5 +158,5 @@ def run_single_test():
 
 if __name__ == "__main__":
 
-    run_single_test() # 단일 테스트
+    run_single_test()  # 단일 테스트
     # run_pipeline_test()  # 총 테스트 케이스 테스트

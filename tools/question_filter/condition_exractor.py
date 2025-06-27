@@ -8,7 +8,11 @@ from pymongo import MongoClient
 
 from common.data import NLP_CHUNKS_COLLECTION_NAME, MONGO_URI, DB_NAME
 from schemas.agent_responses import EligibilitySuccessResponse
-from schemas.question_filter_schema import ConditionExtractorResult, ExtractedProduct, ChunkData
+from schemas.question_filter_schema import (
+    ConditionExtractorResult,
+    ExtractedProduct,
+    ChunkData,
+)
 
 
 class ConditionExtractorTool(BaseTool):
@@ -20,7 +24,10 @@ class ConditionExtractorTool(BaseTool):
     """
 
     name: str = "condition_extractor"
-    description: str = "Extracts preferential condition and interest rate chunk data from MongoDB based on product codes from eligible products."
+    description: str = (
+        "Extracts preferential condition and interest rate chunk data from MongoDB based on product codes from eligible products."
+    )
+
     def __init__(self, eligibility_response: EligibilitySuccessResponse):
         """
         Tool 초기화
@@ -50,10 +57,16 @@ class ConditionExtractorTool(BaseTool):
             ]
 
             # 우대조건 및 금리정보 청크만 조회 (basic_rate_info, preferential_details)
-            raw_chunks = list(collection.find({
-                "product_code": {"$in": product_codes},
-                "chunks.chunk_type": {"$in": ["basic_rate_info", "preferential_details"]}
-            }))
+            raw_chunks = list(
+                collection.find(
+                    {
+                        "product_code": {"$in": product_codes},
+                        "chunks.chunk_type": {
+                            "$in": ["basic_rate_info", "preferential_details"]
+                        },
+                    }
+                )
+            )
 
             print(f"📋 조회된 우대조건 및 금리정보 청크: {len(raw_chunks)}개")
 
@@ -67,7 +80,7 @@ class ConditionExtractorTool(BaseTool):
                 products=processed_chunks,
                 total_products=len(processed_chunks),
                 total_chunks=total_chunk_count,
-                success=True
+                success=True,
             )
 
             return result
@@ -75,10 +88,7 @@ class ConditionExtractorTool(BaseTool):
         except Exception as e:
             print(f"❌ 우대조건 및 금리정보 청크 조회 실패: {str(e)}")
             return ConditionExtractorResult(
-                products=[],
-                total_products=0,
-                total_chunks=0,
-                success=False
+                products=[], total_products=0, total_chunks=0, success=False
             )
 
     @staticmethod
@@ -98,7 +108,10 @@ class ConditionExtractorTool(BaseTool):
             # 우대조건 및 금리정보 청크만 필터링 및 스키마 변환
             filtered_chunks = []
             for chunk in chunk_data.get("chunks", []):
-                if chunk.get("chunk_type") in ["basic_rate_info", "preferential_details"]:
+                if chunk.get("chunk_type") in [
+                    "basic_rate_info",
+                    "preferential_details",
+                ]:
                     chunk_schema = ChunkData(
                         chunk_type=chunk.get("chunk_type", ""),
                         chunk_index=chunk.get("chunk_index", ""),
@@ -110,14 +123,16 @@ class ConditionExtractorTool(BaseTool):
                 rate_condition_chunk = ExtractedProduct(
                     product_code=chunk_data.get("product_code", ""),
                     product_name=chunk_data.get("product_name", ""),
-                    chunks=filtered_chunks
+                    chunks=filtered_chunks,
                 )
                 processed_chunks.append(rate_condition_chunk)
 
         return processed_chunks
 
     @staticmethod
-    def _validate_eligibility_data(eligibility_response: EligibilitySuccessResponse) -> bool:
+    def _validate_eligibility_data(
+        eligibility_response: EligibilitySuccessResponse,
+    ) -> bool:
         """
         EligibilityAgent 응답 데이터 검증
 
@@ -150,10 +165,7 @@ class ConditionExtractorTool(BaseTool):
         if not self._validate_eligibility_data(self.eligibility_response):
             print("❌ EligibilityAgent 응답 데이터 검증 실패")
             return ConditionExtractorResult(
-                products=[],
-                total_products=0,
-                total_chunks=0,
-                success=False
+                products=[], total_products=0, total_chunks=0, success=False
             )
 
         # 2. 우대조건 및 금리정보 청크 데이터 조회 및 처리
@@ -163,5 +175,7 @@ class ConditionExtractorTool(BaseTool):
             print("❌ 우대조건 및 금리정보 청크 조회 실패")
             return result
 
-        print(f"✅ ConditionExtractorTool 실행 완료: {result.total_products}개 상품, {result.total_chunks}개 청크 추출")
+        print(
+            f"✅ ConditionExtractorTool 실행 완료: {result.total_products}개 상품, {result.total_chunks}개 청크 추출"
+        )
         return result

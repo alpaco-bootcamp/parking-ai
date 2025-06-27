@@ -20,7 +20,9 @@ class FilterSummary(BaseModel):
     match_rate: float = Field(description="매칭률 (백분율)")
     execution_time: Optional[float] = Field(default=None, description="실행 시간 (초)")
 
+
 # EligibilityAgent 응답
+
 
 class EligibilitySuccessResponse(BaseModel):
     """EligibilityAgent 성공 응답"""
@@ -56,7 +58,9 @@ class EligibilityErrorResponse(BaseModel):
     success: bool = Field(default=False, description="성공 여부")
     error: str = Field(description="에러 메시지")
 
+
 # QuestionFilterAgent 응답
+
 
 class QuestionFilterSuccessResponse(BaseModel):
     """QuestionFilterAgent 성공 응답"""
@@ -87,7 +91,9 @@ class QuestionFilterErrorResponse(BaseModel):
     user_conditions: Optional[EligibilityConditions] = Field(
         default=None, description="사용자 조건"
     )
-    processing_step: str = Field(default="question_filter_failed", description="처리 단계")
+    processing_step: str = Field(
+        default="question_filter_failed", description="처리 단계"
+    )
     next_agent: Optional[str] = Field(default=None, description="다음 에이전트")
     success: bool = Field(default=False, description="성공 여부")
     error: str = Field(description="에러 메시지")

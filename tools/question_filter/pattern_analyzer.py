@@ -14,8 +14,11 @@ from pydantic import BaseModel, Field
 from typing import Optional
 
 from prompts.question_filter_prompts import QuestionFilterPrompts
-from schemas.question_filter_schema import ConditionExtractorResult, PatternAnalysisOutput, PatternAnalyzerResult
-
+from schemas.question_filter_schema import (
+    ConditionExtractorResult,
+    PatternAnalysisOutput,
+    PatternAnalyzerResult,
+)
 
 
 class PatternAnalyzerTool(BaseTool):
@@ -27,7 +30,9 @@ class PatternAnalyzerTool(BaseTool):
     """
 
     name: str = "pattern_analyzer"
-    description: str = "Analyzes rate information and preferential condition patterns using LLM and generates RAG queries for question generation."
+    description: str = (
+        "Analyzes rate information and preferential condition patterns using LLM and generates RAG queries for question generation."
+    )
 
     def __init__(self, llm: LLM, extracted_conditions: ConditionExtractorResult):
         """
@@ -69,7 +74,7 @@ class PatternAnalyzerTool(BaseTool):
         return {
             "rate_info_texts": rate_info_texts,
             "preferential_texts": preferential_texts,
-            "bank_names": list(bank_names)
+            "bank_names": list(bank_names),
         }
 
     @staticmethod
@@ -92,14 +97,14 @@ class PatternAnalyzerTool(BaseTool):
                     "우대조건 마케팅 수신 동의",
                     "우대조건 모바일 앱 사용",
                     "우대조건 카드 사용 실적",
-                    "파킹통장 금리 조건"
+                    "파킹통장 금리 조건",
                 ]
 
             result = PatternAnalyzerResult(
                 analysis_patterns=llm_output.patterns,
                 rag_queries=rag_queries,
                 total_patterns=len(llm_output.patterns),
-                analysis_success=True
+                analysis_success=True,
             )
 
             return result
@@ -110,7 +115,7 @@ class PatternAnalyzerTool(BaseTool):
                 analysis_patterns=[],
                 rag_queries=["우대조건 패턴 분석", "금리정보 패턴"],
                 total_patterns=0,
-                analysis_success=False
+                analysis_success=False,
             )
 
     @staticmethod
@@ -150,7 +155,7 @@ class PatternAnalyzerTool(BaseTool):
                 analysis_patterns=[],
                 rag_queries=[],
                 total_patterns=0,
-                analysis_success=False
+                analysis_success=False,
             )
 
         try:
@@ -164,22 +169,24 @@ class PatternAnalyzerTool(BaseTool):
             prompt_text = prompts.pattern_analysis(
                 rate_info_texts=analysis_data["rate_info_texts"],
                 preferential_texts=analysis_data["preferential_texts"],
-                bank_names=analysis_data["bank_names"]
+                bank_names=analysis_data["bank_names"],
             )
 
             prompt_template = PromptTemplate(
                 template=prompt_text + "\n\n{format_instructions}",
                 input_variables=[],
-                partial_variables={"format_instructions": self.output_parser.get_format_instructions()}
+                partial_variables={
+                    "format_instructions": self.output_parser.get_format_instructions()
+                },
             )
 
             # 4. LCEL 체이닝 구성
             chain = (
-                    RunnablePassthrough()
-                    | prompt_template
-                    | self.llm
-                    | self.output_parser
-                    | RunnableLambda(self._convert_to_schema)
+                RunnablePassthrough()
+                | prompt_template
+                | self.llm
+                | self.output_parser
+                | RunnableLambda(self._convert_to_schema)
             )
 
             # 5. 체인 실행
@@ -188,7 +195,8 @@ class PatternAnalyzerTool(BaseTool):
 
             if result.analysis_success:
                 print(
-                    f"✅ PatternAnalyzerTool 실행 완료: {result.total_patterns}개 패턴 분석, {len(result.rag_queries)}개 RAG 쿼리 생성")
+                    f"✅ PatternAnalyzerTool 실행 완료: {result.total_patterns}개 패턴 분석, {len(result.rag_queries)}개 RAG 쿼리 생성"
+                )
             else:
                 print("⚠️ PatternAnalyzerTool 부분 완료: 기본 RAG 쿼리로 대체")
 
@@ -200,5 +208,5 @@ class PatternAnalyzerTool(BaseTool):
                 analysis_patterns=[],
                 rag_queries=["우대조건 일반 패턴", "금리정보 일반 패턴"],
                 total_patterns=0,
-                analysis_success=False
+                analysis_success=False,
             )
