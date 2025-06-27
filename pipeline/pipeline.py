@@ -1,8 +1,9 @@
 from typing import Any
 from langchain.schema.runnable import RunnableSequence, Runnable
-import pymongo
+from langchain_core.language_models import BaseLanguageModel
 
 from agents.eligibility_agent import EligibilityAgent
+from agents.question_filter_agent import QuestionFilterAgent
 from schemas.eligibility_conditions import EligibilityConditions
 from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse
 
@@ -14,21 +15,26 @@ class Pipeline:
     현재는 EligibilityAgent만 구현되어 있으며, 향후 FilterQuestionAgent, StrategyAgent 등이 추가될 예정
     """
 
-    def __init__(self) -> None:
+    def __init__(self, llm: BaseLanguageModel) -> None:
         """
         파이프라인 초기화
+
+         Args:
+            llm: LangChain Chat Model 인스턴스 (ChatOpenAI 등)
+
         """
 
         # 에이전트 초기화
         self.eligibility_agent = EligibilityAgent()  # rule_base기반
+        self.question_filter_agent = QuestionFilterAgent(llm)
         # TODO: 향후 추가될 에이전트들
-        # self.filter_agent = FilterQuestionAgent()
         # self.strategy_agent = StrategyAgent()
         # self.comparator_agent = ComparatorAgent()
         # self.formatter_agent = FormatterAgent()
 
-        # 현재 파이프라인 구성 (EligibilityAgent만)
-        self.pipeline = self.build_pipeline_single()
+        # 현재 파이프라인 구성
+        # self.pipeline = self.build_pipeline_single() # 단일
+        self.pipeline = self.build_pipeline() # 다중
 
         print("✅ MultiAgentPipeline 초기화 완료")
 
@@ -52,8 +58,8 @@ class Pipeline:
         # 각 단계의 출력이 다음 단계의 입력이 됨
         pipeline_components = [
             self.eligibility_agent.runnable,
+            self.question_filter_agent.runnable, # 역질문
             # TODO: 향후 추가될 에이전트들
-            # self.filter_agent.runnable, # 역질문
             # self.strategy_agent.runnable,
             # self.comparator_agent.runnable,
             # self.formatter_agent.runnable

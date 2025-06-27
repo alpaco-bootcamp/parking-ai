@@ -84,22 +84,22 @@ class QuestionFilterPrompts:
 - 예시: "우대_마케팅동의", "우대_앱사용", "우대_카드실적"
 
 === 출력 형식 (JSON) ===
-{{
+{{{{
   "patterns": [
-    {{
+    {{{{
       "pattern_name": "금리_기본금리",
       "pattern_type": "rate_info",
       "frequency": 8,
       "affected_banks": ["토스뱅크", "카카오뱅크", "하나은행"],
       "standard_keyword": "기본 금리 정보"
-    }},
-    {{
+    }}}},
+    {{{{
       "pattern_name": "우대_마케팅동의", 
       "pattern_type": "preferential_condition",
       "frequency": 12,
       "affected_banks": ["토스뱅크", "하나은행", "케이뱅크"],
       "standard_keyword": "마케팅 정보 수신 동의"
-    }}
+    }}}}
   ],
   "rag_queries": [
     "금리정보 기본금리 우대금리",
@@ -108,7 +108,7 @@ class QuestionFilterPrompts:
     "우대조건 카드 이용 실적",
     "파킹통장 자동이체 우대조건"
   ]
-}}
+}}}}
 
 === 중요 지침 ===
 - 패턴명은 "금리_" 또는 "우대_" 접두사로 명확히 구분

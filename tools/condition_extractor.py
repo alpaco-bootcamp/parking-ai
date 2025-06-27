@@ -2,47 +2,39 @@
 Tool 1: ConditionExtractorTool
 역할: 우대조건 및 금리정보 청크 데이터 추출
 """
+from typing import Optional
 
-from langchain.tools import BaseTool
+from langchain_core.runnables import Runnable, RunnableConfig
 from pymongo import MongoClient
 
 from common.data import NLP_CHUNKS_COLLECTION_NAME, MONGO_URI, DB_NAME
 from schemas.agent_responses import EligibilitySuccessResponse
 from schemas.question_filter_schema import (
-    ConditionExtractorResult,
     ExtractedProduct,
-    ChunkData,
+    ChunkData, ConditionExtractorResult,
 )
 
 
-class ConditionExtractorTool(BaseTool):
+class ConditionExtractorTool(Runnable):
     """
     우대조건 및 금리정보 청크 데이터를 추출하는 Tool
 
-    입력: EligibilitySuccessResponse (init 시 주입)
     출력: ConditionExtractorResult
     """
 
-    name: str = "condition_extractor"
-    description: str = (
-        "Extracts preferential condition and interest rate chunk data from MongoDB based on product codes from eligible products."
-    )
-
-    def __init__(self, eligibility_response: EligibilitySuccessResponse):
+    def __init__(self):
         """
         Tool 초기화
+        """
+        client = MongoClient(MONGO_URI)
+        self.db = client[DB_NAME]
+
+    def extract_product_result(self, eligibility_response: EligibilitySuccessResponse) -> ConditionExtractorResult:
+        """
+        MongoDB에서 우대조건 및 금리정보 청크 데이터 조회 및 처리
 
         Args:
             eligibility_response: EligibilityAgent 응답
-        """
-        super().__init__()
-        client = MongoClient(MONGO_URI)
-        self.db = client[DB_NAME]
-        self.eligibility_response = eligibility_response
-
-    def extract_product_result(self) -> ConditionExtractorResult:
-        """
-        MongoDB에서 우대조건 및 금리정보 청크 데이터 조회 및 처리
 
         Returns:
             ConditionExtractorResult: 우대조건 및 금리정보 청크 데이터 결과
@@ -53,7 +45,7 @@ class ConditionExtractorTool(BaseTool):
             # 상품 코드 추출
             product_codes = [
                 product.product_code
-                for product in self.eligibility_response.result_products
+                for product in eligibility_response.result_products
             ]
 
             # 우대조건 및 금리정보 청크만 조회 (basic_rate_info, preferential_details)
@@ -152,24 +144,45 @@ class ConditionExtractorTool(BaseTool):
 
         return True
 
-    def _run(self) -> ConditionExtractorResult:
+    def invoke(self, eligibility_response: EligibilitySuccessResponse, config=None,  **kwargs) -> ConditionExtractorResult:
         """
-        Tool 실행 메인 로직
+        Tool 실행 메인 로직 - Runnable 필수 메소드
+
+        우대조건 및 금리정보 청크 데이터를 MongoDB에서 추출하여
+        다음 단계(PatternAnalyzer)에서 사용할 수 있는 형태로 가공합니다.
+
+        처리 과정:
+        1. EligibilityAgent 응답 데이터 검증
+        2. 상품 코드 기반 MongoDB 청크 데이터 조회
+        3. basic_rate_info, preferential_details 청크만 필터링
+        4. 스키마 형태로 데이터 변환
+
+        Args:
+            eligibility_response (EligibilitySuccessResponse): EligibilityAgent의 출력 결과
+                - result_products: 1차 필터링된 통장 상품 목록
+                - filter_summary: 필터링 통계 정보
+                - user_conditions: 사용자 우대조건
+            config (dict, optional): LangChain 실행 설정. Defaults to None.
 
         Returns:
             ConditionExtractorResult: 우대조건 및 금리정보 청크 데이터 결과
+                - products: 추출된 상품별 청크 데이터 목록
+                - total_products: 조회된 상품 수
+                - total_chunks: 추출된 총 청크 수
+                - success: 추출 성공 여부
+
         """
         print("🔄 ConditionExtractorTool 실행 시작")
 
         # 1. 입력 데이터 검증
-        if not self._validate_eligibility_data(self.eligibility_response):
+        if not self._validate_eligibility_data(eligibility_response):
             print("❌ EligibilityAgent 응답 데이터 검증 실패")
             return ConditionExtractorResult(
                 products=[], total_products=0, total_chunks=0, success=False
             )
 
         # 2. 우대조건 및 금리정보 청크 데이터 조회 및 처리
-        result = self.extract_product_result()
+        result = self.extract_product_result(eligibility_response)
 
         if not result.success:
             print("❌ 우대조건 및 금리정보 청크 조회 실패")

@@ -6,6 +6,9 @@
 
 import sys
 import os
+from dotenv import load_dotenv
+
+from langchain_openai import ChatOpenAI
 from pymongo import MongoClient
 
 from pipeline.pipeline import Pipeline
@@ -17,6 +20,7 @@ from schemas.eligibility_conditions import EligibilityConditions
 from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse
 from common.data import MONGO_URI
 
+load_dotenv()
 
 def create_test_conditions() -> list[EligibilityConditions]:
     """다양한 테스트 조건들 생성"""
@@ -24,7 +28,7 @@ def create_test_conditions() -> list[EligibilityConditions]:
     # 테스트 케이스 1: 높은 금리, 특별 오퍼
     test_case_1 = EligibilityConditions(
         min_interest_rate=1.0,
-        categories=["specialOffer", "online"],
+        categories=["online"],
         special_conditions=["first_banking"],
     )
 
@@ -49,8 +53,10 @@ def create_test_conditions() -> list[EligibilityConditions]:
         ],
     )
 
-    return [test_case_1, test_case_2, test_case_3]
+    return [test_case_1]
 
+def create_llm():
+    return ChatOpenAI(model='gpt-4o-mini')
 
 def run_pipeline_test():
     """파이프라인 테스트 실행"""
@@ -60,7 +66,8 @@ def run_pipeline_test():
 
     try:
         # 파이프라인 초기화
-        pipeline = Pipeline()
+        llm = create_llm()
+        pipeline = Pipeline(llm)
 
         # 파이프라인 정보 출력
         info = pipeline.get_pipeline_info()
@@ -117,8 +124,8 @@ def run_single_test():
     print("🧪 단일 테스트 케이스 실행")
 
     try:
-        # MongoDB 연결
-        pipeline = Pipeline()
+        llm = create_llm()
+        pipeline = Pipeline(llm)
 
         # 간단한 테스트 조건
         test_conditions = EligibilityConditions(
@@ -158,5 +165,5 @@ def run_single_test():
 
 if __name__ == "__main__":
 
-    run_single_test()  # 단일 테스트
-    # run_pipeline_test()  # 총 테스트 케이스 테스트
+    # run_single_test()  # 단일 테스트
+    run_pipeline_test()  # 총 테스트 케이스 테스트

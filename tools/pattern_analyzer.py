@@ -6,12 +6,9 @@ Tool 2: PatternAnalyzerTool
 
 import json
 from langchain.tools import BaseTool
-from langchain.llms.base import LLM
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
-from pydantic import BaseModel, Field
-from typing import Optional
 
 from prompts.question_filter_prompts import QuestionFilterPrompts
 from schemas.question_filter_schema import (
@@ -19,37 +16,28 @@ from schemas.question_filter_schema import (
     PatternAnalysisOutput,
     PatternAnalyzerResult,
 )
+from langchain_core.runnables import Runnable
 
 
-class PatternAnalyzerTool(BaseTool):
+class PatternAnalyzerTool(Runnable):
     """
     LLM 기반 우대조건 패턴 분석 및 RAG 쿼리 생성 Tool
 
-    입력: ConditionExtractorResult
     출력: PatternAnalyzerResult
     """
 
-    name: str = "pattern_analyzer"
-    description: str = (
-        "Analyzes rate information and preferential condition patterns using LLM and generates RAG queries for question generation."
-    )
-
-    def __init__(self, llm: LLM, extracted_conditions: ConditionExtractorResult):
+    def __init__(self, llm):
         """
         Tool 초기화
-
-        Args:
-            llm: LangChain LLM 인스턴스
-            extracted_conditions: Tool 1의 출력 결과
         """
         super().__init__()
         self.llm = llm
-        self.extracted_conditions = extracted_conditions
 
         # Pydantic OutputParser 설정
         self.output_parser = PydanticOutputParser(pydantic_object=PatternAnalysisOutput)
 
-    def extract_analysis_data(self) -> dict[str, list[str]]:
+    @staticmethod
+    def _extract_analysis_data(extracted_conditions: ConditionExtractorResult) -> dict[str, list[str]]:
         """
         금리정보와 우대조건 텍스트 분리 추출
 
@@ -60,11 +48,11 @@ class PatternAnalyzerTool(BaseTool):
         preferential_texts = []
         bank_names = set()
 
-        for rate_chunk in self.extracted_conditions.rate_condition_chunks:
-            bank_names.add(rate_chunk.product_name.split()[0])  # 은행명 추출
+        for product in extracted_conditions.products:
+            bank_names.add(product.product_name.split()[0])  # 은행명 추출
 
-            for chunk in rate_chunk.chunks:
-                formatted_text = f"[{rate_chunk.product_name}] {chunk.content_natural}"
+            for chunk in product.chunks:
+                formatted_text = f"[{product.product_name}] {chunk.content_natural}"
 
                 if chunk.chunk_type == "basic_rate_info":
                     rate_info_texts.append(formatted_text)
@@ -133,15 +121,19 @@ class PatternAnalyzerTool(BaseTool):
             print("❌ ConditionExtractorTool 실행이 실패한 상태입니다.")
             return False
 
-        if not extracted_conditions.rate_condition_chunks:
+        if not extracted_conditions.products:
             print("❌ 분석할 우대조건 데이터가 없습니다.")
             return False
 
         return True
 
-    def _run(self) -> PatternAnalyzerResult:
+    def invoke(self, extracted_conditions: ConditionExtractorResult, config=None, **kwargs) -> PatternAnalyzerResult:
         """
         Tool 실행 메인 로직
+
+        Args:
+            extracted_conditions: Tool 1의 출력 결과
+            config (dict, optional): LangChain 실행 설정. Defaults to None.
 
         Returns:
             PatternAnalyzerResult: 패턴 분석 결과
@@ -149,7 +141,7 @@ class PatternAnalyzerTool(BaseTool):
         print("🔄 PatternAnalyzerTool 실행 시작")
 
         # 1. 입력 데이터 검증
-        if not self._validate_input(self.extracted_conditions):
+        if not self._validate_input(extracted_conditions):
             print("❌ 입력 데이터 검증 실패")
             return PatternAnalyzerResult(
                 analysis_patterns=[],
@@ -160,7 +152,7 @@ class PatternAnalyzerTool(BaseTool):
 
         try:
             # 2. 분석 데이터 추출
-            analysis_data = self.extract_analysis_data()
+            analysis_data = self._extract_analysis_data(extracted_conditions)
             print("📝 분석 데이터 추출 완료")
 
             # 3. 프롬프트 템플릿 생성
@@ -179,6 +171,7 @@ class PatternAnalyzerTool(BaseTool):
                     "format_instructions": self.output_parser.get_format_instructions()
                 },
             )
+            print(f'prompt_template: {prompt_template.template}')
 
             # 4. LCEL 체이닝 구성
             chain = (
@@ -188,6 +181,8 @@ class PatternAnalyzerTool(BaseTool):
                 | self.output_parser
                 | RunnableLambda(self._convert_to_schema)
             )
+
+            print(f'🔎 llm 요청중..')
 
             # 5. 체인 실행
             result = chain.invoke({})

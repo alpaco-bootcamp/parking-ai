@@ -1,5 +1,26 @@
+from typing import TypedDict
+
 import pymongo
 from pydantic import BaseModel, Field
+from typing import Any
+
+
+
+
+class QuestionFilterToolsWrapper(BaseModel):
+    """
+    QuestionFilterAgent용 Tools Wrapper 스키마
+
+    우대조건 질문 기반 2차 필터링을 위한 Tool들을 관리하는 딕셔너리 구조
+    각 Tool은 특정 단계의 처리를 담당하며, 순차적으로 실행됨
+    """
+
+    condition_extractor: Any = Field(
+        description="우대조건 및 금리정보 청크 데이터 추출 Tool"
+    )
+    pattern_analyzer: Any = Field(
+        description="LLM 기반 우대조건 패턴 분석 및 RAG 쿼리 생성 Tool"
+    )
 
 """
 Tool 1: ConditionExtractorTool 스키마
