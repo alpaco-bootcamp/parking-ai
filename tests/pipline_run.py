@@ -96,9 +96,9 @@ def run_pipeline_test():
                 print(f"   🎯 다음 에이전트: {result.next_agent}")
 
                 # 매칭된 상품 일부 출력
-                if result.eligible_products:
+                if result.result_products:
                     print(f"   📋 매칭된 상품:")
-                    for product in result.eligible_products:
+                    for product in result.result_products:
                         print(f" 상품: {product.product_name} ")
 
             elif isinstance(result, EligibilityErrorResponse):
@@ -128,14 +128,13 @@ def run_single_test():
 
     try:
         # MongoDB 연결
-        client = MongoClient(MONGO_URI)
-        pipeline = Pipeline(client)
+        pipeline = Pipeline()
 
         # 간단한 테스트 조건
         test_conditions = EligibilityConditions(
             min_interest_rate=1.0,
-            categories=["online"],
-            special_conditions=["bank_app", "online"],
+            categories=[],
+            special_conditions=["bank_app"],
         )
 
         print(f"📝 테스트 조건: {test_conditions}")
@@ -152,9 +151,9 @@ def run_single_test():
             print(f"   🎯 다음 에이전트: {result.next_agent}")
 
             # 매칭된 상품 일부 출력
-            if result.eligible_products:
+            if result.result_products:
                 print(f"   📋 매칭된 상품:")
-                for product in result.eligible_products:
+                for product in result.result_products:
                     print(f" 상품: {product.product_name} ")
 
         elif isinstance(result, EligibilityErrorResponse):
@@ -166,12 +165,8 @@ def run_single_test():
 
         traceback.print_exc()
 
-    finally:
-        if "client" in locals():
-            client.close()
-
 
 if __name__ == "__main__":
 
-    # run_single_test() # 단일 테스트
-    run_pipeline_test()  # 총 테스트 케이스 테스트
+    run_single_test() # 단일 테스트
+    # run_pipeline_test()  # 총 테스트 케이스 테스트

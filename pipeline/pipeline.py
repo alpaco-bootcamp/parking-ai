@@ -14,23 +14,19 @@ class Pipeline:
     현재는 EligibilityAgent만 구현되어 있으며, 향후 FilterQuestionAgent, StrategyAgent 등이 추가될 예정
     """
 
-    def __init__(self, mongodb_client: pymongo.MongoClient) -> None:
+    def __init__(self) -> None:
         """
         파이프라인 초기화
-
-        Args:
-            mongodb_client: MongoDB 클라이언트
         """
-        self.db = mongodb_client
 
         # 에이전트 초기화
-        self.eligibility_agent = EligibilityAgent(mongodb_client)  # rule_base기반
+        self.eligibility_agent = EligibilityAgent()  # rule_base기반
 
         # TODO: 향후 추가될 에이전트들
-        # self.filter_agent = FilterQuestionAgent(mongodb_client)
-        # self.strategy_agent = StrategyAgent(mongodb_client)
-        # self.comparator_agent = ComparatorAgent(mongodb_client)
-        # self.formatter_agent = FormatterAgent(mongodb_client)
+        # self.filter_agent = FilterQuestionAgent()
+        # self.strategy_agent = StrategyAgent()
+        # self.comparator_agent = ComparatorAgent()
+        # self.formatter_agent = FormatterAgent()
 
         # 현재 파이프라인 구성 (EligibilityAgent만)
         self.pipeline = self.build_pipeline_single()

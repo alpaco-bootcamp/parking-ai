@@ -1,4 +1,3 @@
-import pymongo
 from db.save_db import get_all_documents
 from common.data import BASIC_COLLECTION_NAME
 from langchain.schema.runnable import RunnableLambda
@@ -8,7 +7,6 @@ from schemas.agent_responses import (
     EligibilitySuccessResponse,
     EligibilityErrorResponse,
     FilterSummary,
-    SimpleProduct,
 )
 from tools.condition_matcher import ConditionMatcherTool
 
@@ -16,14 +14,10 @@ from tools.condition_matcher import ConditionMatcherTool
 class EligibilityAgent:
     """우대조건 기반 통장 필터링 에이전트"""
 
-    def __init__(self, mongodb_client: pymongo.MongoClient) -> None:
+    def __init__(self) -> None:
         """
         에이전트 초기화
-
-        Args:
-            mongodb_client: MongoDB 클라이언트
         """
-        self.db = mongodb_client
         self.condition_matcher = ConditionMatcherTool()
         # Runnable객체로 반환하여 파이프라인에서 실행시 execute(input_data)메소드 실행. 결과값이 다음 파이프라인에 전달
         self.runnable = RunnableLambda(self.execute)
@@ -66,7 +60,7 @@ class EligibilityAgent:
         )
 
         return EligibilitySuccessResponse(
-            eligible_products=filter_result.matched_products,
+            result_products=filter_result.matched_products,
             filter_summary=filter_summary,
             user_conditions=conditions,
         )

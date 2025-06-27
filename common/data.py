@@ -26,6 +26,8 @@ MONGO_URI = "mongodb://localhost:27017"
 DB_NAME = "parking"
 BASIC_COLLECTION_NAME = "products"
 DETAIL_COLLECTION_NAME = "product_details"
+NLP_FULL_COLLECTION_NAME = "products_nlp_full"
+NLP_CHUNKS_COLLECTION_NAME = "products_nlp_chunks"
 
 # [기본 정보] 필드
 BASIC_INFO_FIELD = {
