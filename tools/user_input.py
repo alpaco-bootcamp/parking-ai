@@ -7,58 +7,16 @@ import uuid
 from datetime import datetime
 from langchain.schema.runnable import Runnable
 
-from schemas.question_filter_schema import (
+from schemas.question_schema import (
     UserResponse,
     UserInputResult,
     QuestionGeneratorResult,
     UserQuestion,
 )
 
-
-def _get_api_input(question: str, question_id: str) -> tuple[str, bool]:
-    """
-    FastAPI WebSocket을 통한 사용자 입력 받기 (test_mode=False)
-
-    Args:
-        question: 사용자에게 보여줄 질문
-        question_id: 질문 ID
-
-    Returns:
-        tuple[str, bool]: (원본응답, boolean값)
-
-    Note:
-        현재는 Mock 구현, 추후 실제 WebSocket 연동 예정
-    """
-    print(f"🌐 API 모드에서 질문 대기 중: {question_id}")
-    print(f"📤 질문 전송: {question}")
-
-    # TODO: 실제 FastAPI WebSocket 구현
-    # 현재는 기본값 반환
-    print("⚠️  API 모드는 아직 구현되지 않음. 기본값(True) 반환")
-    return "api_default", True
-
-
-def _create_response_summary(self, responses: list[UserResponse]) -> dict[str, bool]:
-    """
-    질문별 응답 요약 딕셔너리 생성 (Tool 6에서 필터링 기준으로 사용)
-
-    Args:
-        responses: 사용자 응답 목록
-
-    Returns:
-        dict[str, bool]: 질문 텍스트별 조건 충족 여부 (question -> response_value)
-    """
-    summary = {}
-
-    for response in responses:
-        summary[response.question] = response.response_value
-
-    return summary
-
-
 class UserInputTool(Runnable):
     """
-    환경별 적응형 사용자 입력 처리 Tool
+    사용자 입력 처리 Tool
 
     기능:
     - test_mode=True: 콘솔에서 y/n 입력 받기
@@ -115,6 +73,29 @@ class UserInputTool(Runnable):
                 continue
 
     @staticmethod
+    def _get_api_input(question: str, question_id: str) -> tuple[str, bool]:
+        """
+        FastAPI WebSocket을 통한 사용자 입력 받기 (test_mode=False)
+
+        Args:
+            question: 사용자에게 보여줄 질문
+            question_id: 질문 ID
+
+        Returns:
+            tuple[str, bool]: (원본응답, boolean값)
+
+        Note:
+            현재는 Mock 구현, 추후 실제 WebSocket 연동 예정
+        """
+        print(f"🌐 API 모드에서 질문 대기 중: {question_id}")
+        print(f"📤 질문 전송: {question}")
+
+        # TODO: 실제 FastAPI WebSocket 구현
+        # 현재는 기본값 반환
+        print("⚠️  API 모드는 아직 구현되지 않음. 기본값(True) 반환")
+        return "api_default", True
+
+    @staticmethod
     def _create_user_response(
         question: UserQuestion, raw_response: str, response_value: bool
     ) -> UserResponse:
@@ -139,7 +120,26 @@ class UserInputTool(Runnable):
             response_value=response_value,
             raw_response=raw_response,
             response_timestamp=datetime.now(),
+            affected_banks=question.related_banks
         )
+
+    @staticmethod
+    def _create_response_summary(responses: list[UserResponse]) -> dict[str, bool]:
+        """
+        질문별 응답 요약 딕셔너리 생성 (Tool 6에서 필터링 기준으로 사용)
+
+        Args:
+            responses: 사용자 응답 목록
+
+        Returns:
+            dict[str, bool]: 질문 텍스트별 조건 충족 여부 (question -> response_value)
+        """
+        summary = {}
+
+        for response in responses:
+            summary[response.question] = response.response_value
+
+        return summary
 
     @staticmethod
     def _validate_input(question_generator_result: QuestionGeneratorResult) -> bool:
@@ -211,7 +211,7 @@ class UserInputTool(Runnable):
                             question.question, question.id
                         )
                     else:
-                        raw_response, response_value = _get_api_input(
+                        raw_response, response_value = self._get_api_input(
                             question.question, question.id
                         )
 
@@ -232,7 +232,7 @@ class UserInputTool(Runnable):
                     continue
 
             # 4. 응답 요약 생성
-            response_summary = _create_response_summary(user_responses)
+            response_summary = self._create_response_summary(user_responses)
 
             # 5. 실행 시간 계산
             end_time = datetime.now()

@@ -2,6 +2,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Any
 from schemas.eligibility_conditions import EligibilityConditions
+from schemas.question_schema import UserResponse
 
 
 class SimpleProduct(BaseModel):
@@ -59,41 +60,40 @@ class EligibilityErrorResponse(BaseModel):
     error: str = Field(description="에러 메시지")
 
 
-# QuestionFilterAgent 응답
+# QuestionAgent 응답
+class QuestionSuccessResponse(BaseModel):
+    """QuestionAgent 성공 응답"""
 
-
-class QuestionFilterSuccessResponse(BaseModel):
-    """QuestionFilterAgent 성공 응답"""
-
-    result_products: list[SimpleProduct] = Field(description="간소화된 상품 목록")
-    filter_summary: FilterSummary = Field(description="필터링 결과 요약")
+    eligible_products: list[SimpleProduct] = Field(description="1차 필터링된 통장 목록")
+    user_responses: list[UserResponse] = Field(description="사용자 질문-답변 목록")  # 추가
+    response_summary: dict[str, bool] = Field(description="질문별 조건 충족 여부 요약")  # 추가
     user_conditions: EligibilityConditions = Field(description="사용자 조건")
     processing_step: str = Field(
-        default="question_filter_completed", description="처리 단계"
+        default="question_completed", description="처리 단계"
     )
     next_agent: str = Field(default="StrategyAgent", description="다음 에이전트")
     success: bool = Field(default=True, description="성공 여부")
-    error: Optional[str] = Field(default=None, description="에러 메시지")
+    error: str | None = Field(default=None, description="에러 메시지")  # Optional → str | None
 
 
-class QuestionFilterErrorResponse(BaseModel):
-    """QuestionFilterAgent 에러 응답"""
+class QuestionErrorResponse(BaseModel):
+    """QuestionAgent 에러 응답"""
 
-    result_products: list[SimpleProduct] = Field(
+    eligible_products: list[SimpleProduct] = Field(
         default_factory=list, description="빈 상품 목록"
     )
-    filter_summary: FilterSummary = Field(
-        default_factory=lambda: FilterSummary(
-            total_analyzed=0, match_count=0, excluded_count=0, match_rate=0.0
-        ),
-        description="빈 필터링 결과",
+    user_responses: list[UserResponse] = Field(  # 추가
+        default_factory=list, description="빈 응답 목록"
     )
-    user_conditions: Optional[EligibilityConditions] = Field(
+    response_summary: dict[str, bool] = Field(  # 추가
+        default_factory=dict, description="빈 응답 요약"
+    )
+    user_conditions: EligibilityConditions | None = Field(  # Optional → | None
         default=None, description="사용자 조건"
     )
     processing_step: str = Field(
-        default="question_filter_failed", description="처리 단계"
+        default="question_failed", description="처리 단계"
     )
-    next_agent: Optional[str] = Field(default=None, description="다음 에이전트")
+    next_agent: str | None = Field(default=None, description="다음 에이전트")  # Optional → str | None
     success: bool = Field(default=False, description="성공 여부")
     error: str = Field(description="에러 메시지")

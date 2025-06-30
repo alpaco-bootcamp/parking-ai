@@ -6,9 +6,9 @@ from typing import Any
 from datetime import datetime
 
 
-class QuestionFilterToolsWrapper(BaseModel):
+class QuestionToolsWrapper(BaseModel):
     """
-    QuestionFilterAgent용 Tools Wrapper 스키마
+    QuestionAgent용 Tools Wrapper 스키마
 
     우대조건 질문 기반 2차 필터링을 위한 Tool들을 관리하는 딕셔너리 구조
     각 Tool은 특정 단계의 처리를 담당하며, 순차적으로 실행됨
@@ -19,6 +19,12 @@ class QuestionFilterToolsWrapper(BaseModel):
     )
     pattern_analyzer: Any = Field(
         description="LLM 기반 우대조건 패턴 분석 및 RAG 쿼리 생성 Tool"
+    )
+    question_generator: Any = Field(
+        description="패턴 분석 결과 기반으로 RAG 검색하여 사용자 질문 생성 Tool"
+    )
+    user_input: Any = Field(
+        description="환경별 적응형 사용자 입력 처리 Tool (콘솔/API 전환)"
     )
 
 
@@ -117,6 +123,10 @@ class UserQuestion(BaseModel):
         description="사용자에게 보여줄 질문 텍스트 (Yes/No 답변 가능)"
     )
     impact: str = Field(description="해당 조건의 영향도나 중요성 설명")
+    related_banks: list[str] = Field(
+        default_factory=list,
+        description="이 조건이 적용되는 은행 목록"
+    )
 
 
 class QuestionGeneratorResult(BaseModel):
@@ -126,31 +136,6 @@ class QuestionGeneratorResult(BaseModel):
     total_questions: int = Field(description="총 질문 수")
     estimated_time: str = Field(description="예상 소요 시간 (예: '2-3분')")
     generation_success: bool = Field(description="질문 생성 성공 여부")
-
-    class Config:
-        """Pydantic 설정"""
-
-        schema_extra = {
-            "example": {
-                "questions": [
-                    {
-                        "id": "q1",
-                        "category": "은행앱사용",
-                        "question": "해당 은행의 모바일 앱을 월 1회 이상 사용하실 수 있나요?",
-                        "impact": "디지털 은행에서 주로 요구하는 조건입니다",
-                    },
-                    {
-                        "id": "q2",
-                        "category": "카드사용",
-                        "question": "해당 은행의 체크카드나 신용카드로 월 30만원 이상 사용하고 계시나요?",
-                        "impact": "기존 카드 사용 패턴 확인이 필요합니다",
-                    },
-                ],
-                "total_questions": 2,
-                "estimated_time": "2-3분",
-                "generation_success": True,
-            }
-        }
 
 
 # 패턴명 → 카테고리 매핑 상수
@@ -165,7 +150,7 @@ PATTERN_TO_CATEGORY_MAP = {
 
 """
 Tool 4: UserInputTool 스키마
-역할: 환경별 적응형 사용자 입력 처리 (콘솔/API 자동 전환)
+역할: 사용자 입력 처리 (콘솔/API 자동 전환)
 """
 
 
@@ -183,6 +168,11 @@ class UserResponse(UserQuestion):
 
     response_timestamp: datetime | None = Field(default=None, description="응답 시간")
 
+    affected_banks: list[str] = Field(
+        default_factory=list,
+        description="해당 조건이 적용되는 은행 목록"
+    )
+
 
 class UserInputResult(BaseModel):
     """
@@ -197,25 +187,3 @@ class UserInputResult(BaseModel):
     answered_questions: int = Field(description="답변된 질문 수")
 
     collection_success: bool = Field(description="응답 수집 성공 여부")
-
-    class Config:
-        """Pydantic 설정"""
-
-        schema_extra = {
-            "example": {
-                "user_responses": [
-                    {
-                        "id": "q1",
-                        "category": "bank_app",
-                        "question": "해당 은행의 모바일 앱을 월 1회 이상 사용하실 수 있나요?",
-                        "impact": "디지털 은행에서 주로 요구하는 조건입니다",
-                        "response_value": True,
-                        "raw_response": "네, 가능합니다",
-                    }
-                ],
-                "response_summary": {"bank_app": True, "using_card": False},
-                "total_questions": 3,
-                "answered_questions": 3,
-                "collection_success": True,
-            }
-        }

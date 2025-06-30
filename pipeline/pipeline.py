@@ -3,9 +3,10 @@ from langchain.schema.runnable import RunnableSequence, Runnable
 from langchain_core.language_models import BaseLanguageModel
 
 from agents.eligibility_agent import EligibilityAgent
-from agents.question_filter_agent import QuestionFilterAgent
+from agents.question_agent import QuestionAgent
 from schemas.eligibility_conditions import EligibilityConditions
-from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse
+from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse, QuestionErrorResponse
+from schemas.question_schema import UserInputResult
 
 
 class Pipeline:
@@ -15,18 +16,19 @@ class Pipeline:
     현재는 EligibilityAgent만 구현되어 있으며, 향후 FilterQuestionAgent, StrategyAgent 등이 추가될 예정
     """
 
-    def __init__(self, llm: BaseLanguageModel) -> None:
+    def __init__(self, llm: BaseLanguageModel, test_mode: bool = True) -> None:
         """
         파이프라인 초기화
 
          Args:
             llm: LangChain Chat Model 인스턴스 (ChatOpenAI 등)
+            test_mode: 테스트 모드 여부 (콘솔/API 전환용)
 
         """
 
         # 에이전트 초기화
         self.eligibility_agent = EligibilityAgent()  # rule_base기반
-        self.question_filter_agent = QuestionFilterAgent(llm)
+        self.question_agent = QuestionAgent(llm, test_mode)
         # TODO: 향후 추가될 에이전트들
         # self.strategy_agent = StrategyAgent()
         # self.comparator_agent = ComparatorAgent()
@@ -58,7 +60,7 @@ class Pipeline:
         # 각 단계의 출력이 다음 단계의 입력이 됨
         pipeline_components = [
             self.eligibility_agent.runnable,
-            self.question_filter_agent.runnable,  # 역질문
+            self.question_agent.runnable,  # 역질문
             # TODO: 향후 추가될 에이전트들
             # self.strategy_agent.runnable,
             # self.comparator_agent.runnable,
@@ -69,7 +71,7 @@ class Pipeline:
 
     def run(
         self, conditions: EligibilityConditions
-    ) -> EligibilitySuccessResponse | EligibilityErrorResponse:
+    ) -> UserInputResult | QuestionErrorResponse:
         """
         파이프라인 실행
 
@@ -77,7 +79,7 @@ class Pipeline:
             conditions: 사용자 우대조건
 
         Returns:
-            EligibilitySuccessResponse | EligibilityErrorResponse: 파이프라인 실행 결과
+             UserInputResult | QuestionErrorResponse: 파이프라인 실행 결과
         """
         print("🚀 MultiAgentPipeline 실행 시작")
 

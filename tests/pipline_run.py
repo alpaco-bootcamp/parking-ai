@@ -12,12 +12,13 @@ from langchain_openai import ChatOpenAI
 from pymongo import MongoClient
 
 from pipeline.pipeline import Pipeline
+from schemas.question_schema import UserInputResult
 
 # 프로젝트 루트 경로 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from schemas.eligibility_conditions import EligibilityConditions
-from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse
+from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse, QuestionErrorResponse
 from common.data import MONGO_URI
 
 load_dotenv()
@@ -70,7 +71,7 @@ def run_pipeline_test():
     try:
         # 파이프라인 초기화
         llm = create_llm()
-        pipeline = Pipeline(llm)
+        pipeline = Pipeline(llm, test_mode=True)
 
         # 파이프라인 정보 출력
         info = pipeline.get_pipeline_info()
@@ -96,18 +97,20 @@ def run_pipeline_test():
             result = pipeline.run(test_condition)
 
             # 결과 출력
-            if isinstance(result, EligibilitySuccessResponse):
-                print(f"   ✅ 성공: {result.filter_summary.match_count}개 상품 매칭")
-                print(f"   📈 매칭률: {result.filter_summary.match_rate:.1f}%")
-                print(f"   🎯 다음 에이전트: {result.next_agent}")
+            if isinstance(result, UserInputResult):
+                print(f"   ✅ 성공: 사용자 입력 수집 완료")
+                print(f"   📊 질문 응답: {result.answered_questions}/{result.total_questions}개")
+                print(f"   📋 응답 요약: {result.response_summary}")
+                print(f"   🎯 수집 성공: {result.collection_success}")
 
-                # 매칭된 상품 일부 출력
-                if result.result_products:
-                    print(f"   📋 매칭된 상품:")
-                    for product in result.result_products:
-                        print(f" 상품: {product.product_name} ")
+                # 사용자 응답 일부 출력
+                if result.user_responses:
+                    print(f"   💬 사용자 응답:")
+                    for response in result.user_responses:  # 처음 3개만 출력
+                        status = "✅" if response.response_value else "❌"
+                        print(f"      {status} {response.question[:50]}...")
 
-            elif isinstance(result, EligibilityErrorResponse):
+            elif isinstance(result, QuestionErrorResponse):
                 print(f"   ❌ 오류: {result.error}")
 
             print("-" * 60)
@@ -117,7 +120,6 @@ def run_pipeline_test():
     except Exception as e:
         print(f"❌ 테스트 실행 중 오류 발생: {e}")
         import traceback
-
         traceback.print_exc()
 
 

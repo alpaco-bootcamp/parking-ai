@@ -8,15 +8,16 @@ from langchain.llms.base import LLM
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
+from langchain_core.language_models import BaseLanguageModel
 
 from rag.retriever import ParkingRetriever
-from prompts.question_filter_prompts import QuestionFilterPrompts
-from schemas.question_generator_schema import (
+from prompts.question_prompts import QuestionPrompts
+from schemas.question_schema import (
     QuestionGeneratorResult,
     UserQuestion,
     PATTERN_TO_CATEGORY_MAP,
 )
-from schemas.question_filter_schema import PatternAnalyzerResult
+from schemas.question_schema import PatternAnalyzerResult
 
 
 class QuestionGeneratorTool(Runnable):
@@ -27,12 +28,12 @@ class QuestionGeneratorTool(Runnable):
     출력: QuestionGeneratorResult
     """
 
-    def __init__(self, llm: LLM):
+    def __init__(self, llm: BaseLanguageModel):
         """
         Tool 초기화
 
         Args:
-            llm: LangChain LLM 인스턴스
+            llm: 사용할 llm모델
         """
         super().__init__()
         self.llm = llm
@@ -189,17 +190,27 @@ class QuestionGeneratorTool(Runnable):
             rag_context = self.perform_rag_search(input_data.rag_queries)
             print(f"📊 RAG 검색 완료")
 
-            # 3. 우대조건 패턴만 추출
+            # 3. input_data affected_banks 정보 추출
+            affected_banks = []
+            if input_data.analysis_patterns:
+                for pattern in input_data.analysis_patterns:
+                    if pattern.affected_banks:
+                        affected_banks.extend(pattern.affected_banks)
+
+                # 중복 제거하고 정렬
+                affected_banks = sorted(list(set(affected_banks)))
+
+            # 4. 우대조건 패턴만 추출
             preferential_patterns = [
                 pattern
                 for pattern in input_data.analysis_patterns
                 if pattern.pattern_type == "preferential_condition"
             ]
 
-            # 4. 프롬프트 템플릿 생성
-            prompts = QuestionFilterPrompts()
+            # 5. 프롬프트 템플릿 생성
+            prompts = QuestionPrompts()
             prompt_text = prompts.question_generation_with_rag(
-                preferential_patterns=preferential_patterns, rag_context=rag_context
+                preferential_patterns=preferential_patterns, rag_context=rag_context, affected_banks=affected_banks
             )
 
             prompt_template = PromptTemplate(
@@ -209,6 +220,10 @@ class QuestionGeneratorTool(Runnable):
                     "format_instructions": self.output_parser.get_format_instructions()
                 },
             )
+
+
+            print("🤖 LLM 질문 중..")
+            print(prompt_template.template)
 
             # 5. LCEL 체이닝 구성
             chain = (

@@ -1,4 +1,3 @@
-# tools/pattern_analyzer_tool.py
 """
 Tool 2: PatternAnalyzerTool
 역할: LLM 기반 우대조건 패턴 분석 및 RAG 쿼리 생성
@@ -9,9 +8,10 @@ from langchain.tools import BaseTool
 from langchain.output_parsers import PydanticOutputParser
 from langchain.prompts import PromptTemplate
 from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
+from langchain_core.language_models import BaseLanguageModel
 
-from prompts.question_filter_prompts import QuestionFilterPrompts
-from schemas.question_filter_schema import (
+from prompts.question_prompts import QuestionPrompts
+from schemas.question_schema import (
     ConditionExtractorResult,
     PatternAnalysisOutput,
     PatternAnalyzerResult,
@@ -26,9 +26,12 @@ class PatternAnalyzerTool(Runnable):
     출력: PatternAnalyzerResult
     """
 
-    def __init__(self, llm):
+    def __init__(self, llm: BaseLanguageModel):
         """
         Tool 초기화
+
+        Args:
+            llm: 사용할 llm모델
         """
         super().__init__()
         self.llm = llm
@@ -161,7 +164,7 @@ class PatternAnalyzerTool(Runnable):
 
             # 3. 프롬프트 템플릿 생성
             # 프롬프트 인스턴스 생성 및 템플릿 구성
-            prompts = QuestionFilterPrompts()
+            prompts = QuestionPrompts()
             prompt_text = prompts.pattern_analysis(
                 rate_info_texts=analysis_data["rate_info_texts"],
                 preferential_texts=analysis_data["preferential_texts"],
@@ -196,6 +199,9 @@ class PatternAnalyzerTool(Runnable):
                 print(
                     f"✅ PatternAnalyzerTool 실행 완료: {result.total_patterns}개 패턴 분석, {len(result.rag_queries)}개 RAG 쿼리 생성"
                 )
+                for query in result.rag_queries:
+                    print(f"✅ query: {query}")
+
             else:
                 print("⚠️ PatternAnalyzerTool 부분 완료: 기본 RAG 쿼리로 대체")
 
