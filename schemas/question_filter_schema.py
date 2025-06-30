@@ -1,8 +1,9 @@
-from typing import TypedDict, Literal
+from typing import Literal
 
 import pymongo
 from pydantic import BaseModel, Field
 from typing import Any
+from datetime import datetime
 
 
 
@@ -174,3 +175,71 @@ PATTERN_TO_CATEGORY_MAP = {
     "우대_카드실적": "using_card",
     "우대_마케팅동의": "online"  # 또는 적절한 영문명
 }
+
+"""
+Tool 4: UserInputTool 스키마
+역할: 환경별 적응형 사용자 입력 처리 (콘솔/API 자동 전환)
+"""
+
+class UserResponse(UserQuestion):
+    """
+    UserQuestion을 상속받은 사용자 응답 스키마
+    질문 정보 + 사용자 답변 정보를 모두 포함
+    """
+
+    response_value: bool = Field(
+        description="조건 충족 여부 (True/False)"
+    )
+
+    raw_response: str | None = Field(
+        default=None,
+        description="사용자 원본 응답 텍스트"
+    )
+
+    response_timestamp: datetime | None = Field(
+        default=None,
+        description="응답 시간"
+    )
+
+
+class UserInputResult(BaseModel):
+    """
+    Tool 4 (UserInputTool)의 최종 출력 스키마
+    """
+
+    user_responses: list[UserResponse] = Field(
+        description="질문별 사용자 응답 목록"
+    )
+
+    response_summary: dict[str, bool] = Field(
+        description=" 질문별 응답 요약"
+    )
+
+    total_questions: int = Field(description="총 질문 수")
+    answered_questions: int = Field(description="답변된 질문 수")
+
+    collection_success: bool = Field(description="응답 수집 성공 여부")
+
+    class Config:
+        """Pydantic 설정"""
+        schema_extra = {
+            "example": {
+                "user_responses": [
+                    {
+                        "id": "q1",
+                        "category": "bank_app",
+                        "question": "해당 은행의 모바일 앱을 월 1회 이상 사용하실 수 있나요?",
+                        "impact": "디지털 은행에서 주로 요구하는 조건입니다",
+                        "response_value": True,
+                        "raw_response": "네, 가능합니다"
+                    }
+                ],
+                "response_summary": {
+                    "bank_app": True,
+                    "using_card": False
+                },
+                "total_questions": 3,
+                "answered_questions": 3,
+                "collection_success": True
+            }
+        }
