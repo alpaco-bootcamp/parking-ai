@@ -146,3 +146,92 @@ class QuestionFilterPrompts:
                 content += f"\n... (총 {len(texts)}개 중 20개만 표시)"
 
         return {"title": title, "content": content}
+
+
+    @staticmethod
+    def question_generation_with_rag(
+            preferential_patterns: list,
+            rag_context: str,
+    ) -> str:
+        """
+        우대조건 패턴과 RAG 검색 결과를 기반으로 사용자 질문 생성 프롬프트
+
+        Args:
+            preferential_patterns: 우대조건 패턴 목록 (AnalysisPattern 객체들)
+            rag_context: RAG 검색으로 수집된 실제 우대조건 사례 텍스트
+
+        Returns:
+            str: 구조화된 질문 생성 프롬프트
+        """
+
+        # 패턴 요약 생성
+        if preferential_patterns:
+            pattern_summary = "\n".join([
+                f"- {pattern.pattern_name}: {pattern.standard_keyword} (빈도: {pattern.frequency}, 은행: {', '.join(pattern.affected_banks[:3])})"
+                for pattern in preferential_patterns
+            ])
+        else:
+            pattern_summary = "분석된 우대조건 패턴이 없습니다."
+
+        prompt = f"""
+당신은 파킹통장 우대조건을 분석하여 사용자에게 물어볼 질문을 생성하는 전문가입니다.
+
+=== 분석된 우대조건 패턴 ===
+{pattern_summary}
+
+=== 실제 우대조건 사례 (RAG 검색 결과) ===
+{rag_context}
+
+=== 질문 생성 요구사항 ===
+1. 위 패턴과 실제 사례를 종합하여 사용자가 답변하기 쉬운 Yes/No 질문 생성
+2. 질문은 일반인이 이해하기 쉬운 용어로 작성
+3. 각 질문의 영향도(impact)는 해당 조건의 중요성과 통장 선택에 미치는 영향을 설명
+4. 질문 개수는 3-5개로 제한
+5. 빈도수가 높은 패턴 우선으로 질문 생성
+
+=== 질문 생성 가이드라인 ===
+**마케팅 동의 관련**: "마케팅 정보 수신(SMS, 앱 푸시, 이메일 등)에 동의하실 수 있나요?"
+**앱 사용 관련**: "해당 은행의 모바일 앱을 월 1회 이상 사용하실 수 있나요?"
+**카드 사용 관련**: "해당 은행의 체크카드나 신용카드로 월 30만원 이상 사용하고 계시나요?"
+**급여이체 관련**: "급여를 해당 은행 계좌로 받으실 수 있나요?"
+**자동이체 관련**: "공과금이나 통신비 등을 해당 은행에서 자동이체하실 수 있나요?"
+**비대면가입 관련**: "인터넷이나 모바일로 통장을 개설하실 수 있나요?"
+
+=== 카테고리 매핑 규칙 ===
+- 우대_마케팅동의 → "우대_마케팅동의"
+- 우대_앱사용 → "우대_앱사용"  
+- 우대_카드실적 → "우대_카드실적"
+- 우대_급여이체 → "우대_급여이체"
+- 우대_자동이체 → "우대_자동이체"
+- 우대_신규가입 → "우대_신규가입"
+
+=== 출력 형식 (JSON) ===
+{{{{
+  "questions": [
+    {{
+      "id": "q1",
+      "category": "우대_마케팅동의",
+      "question": "마케팅 정보 수신(SMS, 앱 푸시, 이메일 등)에 동의하실 수 있나요?",
+      "impact": "가장 많은 통장(12개)에서 요구하는 조건입니다. 거부하면 선택지가 크게 줄어듭니다."
+    }},
+    {{
+      "id": "q2",
+      "category": "우대_앱사용",
+      "question": "해당 은행의 모바일 앱을 월 1회 이상 사용하실 수 있나요?",
+      "impact": "디지털 은행 중심으로 요구하는 조건입니다. 모바일 뱅킹 이용자에게 유리합니다."
+    }}
+  ],
+  "total_questions": 2,
+  "estimated_time": "2-3분",
+  "generation_success": true
+}}}}
+
+=== 중요 지침 ===
+- 실제 RAG 검색 결과를 참고하여 현실적이고 구체적인 질문 생성
+- impact 설명은 해당 조건이 통장 선택에 미치는 실질적 영향을 명시
+- category는 반드시 "우대_" 접두사를 포함한 패턴명 사용
+- JSON 형식으로만 응답하고 추가 설명은 포함하지 마세요
+- estimated_time은 질문 개수에 따라 적절히 조정 (3개 이하: "1-2분", 4-5개: "2-3분")
+"""
+
+        return prompt
