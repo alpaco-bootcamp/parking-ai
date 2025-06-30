@@ -2,6 +2,7 @@ import time
 from langchain.schema.runnable import RunnableLambda, RunnableSequence
 from langchain_core.language_models import BaseLanguageModel
 
+from context.question_agent_context import QuestionAgentContext
 from tools.wrappers.question_tool_wrappers import QuestionTools
 from schemas.agent_responses import (
     EligibilitySuccessResponse,
@@ -32,6 +33,8 @@ class QuestionAgent:
         self.llm = llm
         # Tools 초기화
         self.tools = QuestionTools.get_tools(llm, test_mode)
+
+        self.agent_ctx = QuestionAgentContext()  # Agent별 독립적인 context
 
         # Runnable 객체로 반환하여 파이프라인에서 실행
         self.runnable = RunnableLambda(self.execute)
@@ -102,6 +105,11 @@ class QuestionAgent:
             print(
                 f"✅ 입력 검증 완료: {len(eligibility_response.result_products)}개 상품"
             )
+
+            # Context에 데이터 설정
+            self.agent_ctx.set_eligible_products(eligibility_response.result_products)
+            self.agent_ctx.set_user_conditions(eligibility_response.user_conditions)
+            self.agent_ctx.set_session_id(f"session_{int(start_time)}")
 
             tool_chain = self._build_runnable_chain()
             result = tool_chain.invoke(eligibility_response)
