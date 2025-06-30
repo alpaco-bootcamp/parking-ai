@@ -61,6 +61,7 @@ class EligibilityErrorResponse(BaseModel):
 
 # QuestionFilterAgent 응답
 
+
 class QuestionFilterSuccessResponse(BaseModel):
     """QuestionFilterAgent 성공 응답"""
 

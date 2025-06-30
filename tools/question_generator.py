@@ -14,7 +14,7 @@ from prompts.question_filter_prompts import QuestionFilterPrompts
 from schemas.question_generator_schema import (
     QuestionGeneratorResult,
     UserQuestion,
-    PATTERN_TO_CATEGORY_MAP
+    PATTERN_TO_CATEGORY_MAP,
 )
 from schemas.question_filter_schema import PatternAnalyzerResult
 
@@ -39,7 +39,9 @@ class QuestionGeneratorTool(Runnable):
         self.retriever = ParkingRetriever()
 
         # PydanticOutputParser 설정 - QuestionGeneratorResult 직접 사용
-        self.output_parser = PydanticOutputParser(pydantic_object=QuestionGeneratorResult)
+        self.output_parser = PydanticOutputParser(
+            pydantic_object=QuestionGeneratorResult
+        )
 
     def perform_rag_search(self, rag_queries: list[str]) -> str:
         """
@@ -57,17 +59,21 @@ class QuestionGeneratorTool(Runnable):
             try:
                 # chunks 벡터스토어 사용하여 검색 (k=10으로 제한)
                 self.retriever.load_vector_stores()
-                docs_with_scores = self.retriever.chunks_vector_store.similarity_search_with_score(
-                    query, k=10
+                docs_with_scores = (
+                    self.retriever.chunks_vector_store.similarity_search_with_score(
+                        query, k=10
+                    )
                 )
 
                 for doc, score in docs_with_scores:
                     product_name = doc.metadata.get("product_name", "Unknown")
                     content = doc.page_content
-                    print(f'⭐️RAG Score: {score}')
-                    print(f'⭐️RAG content: {content}')
+                    print(f"⭐️RAG Score: {score}")
+                    print(f"⭐️RAG content: {content}")
 
-                    context_parts.append(f"[{product_name}] {content} (유사도: {score:.2f})")
+                    context_parts.append(
+                        f"[{product_name}] {content} (유사도: {score:.2f})"
+                    )
 
             except Exception as e:
                 print(f"⚠️ RAG 검색 실패 (쿼리: {query}): {str(e)}")
@@ -77,10 +83,16 @@ class QuestionGeneratorTool(Runnable):
         if len(context_parts) > 30:
             context_parts = context_parts[:30]
 
-        return "\n".join(context_parts) if context_parts else "검색된 우대조건 사례가 없습니다."
+        return (
+            "\n".join(context_parts)
+            if context_parts
+            else "검색된 우대조건 사례가 없습니다."
+        )
 
     @staticmethod
-    def _convert_to_schema(llm_output: QuestionGeneratorResult) -> QuestionGeneratorResult:
+    def _convert_to_schema(
+        llm_output: QuestionGeneratorResult,
+    ) -> QuestionGeneratorResult:
         """
         LLM 파싱된 출력을 최종 결과 스키마로 변환 및 category 매핑
 
@@ -103,7 +115,7 @@ class QuestionGeneratorTool(Runnable):
                     id=question.id,
                     category=english_category,
                     question=question.question,
-                    impact=question.impact
+                    impact=question.impact,
                 )
                 converted_questions.append(converted_question)
 
@@ -111,7 +123,7 @@ class QuestionGeneratorTool(Runnable):
                 questions=converted_questions,
                 total_questions=len(converted_questions),
                 estimated_time=llm_output.estimated_time,
-                generation_success=True
+                generation_success=True,
             )
 
             return result
@@ -122,7 +134,7 @@ class QuestionGeneratorTool(Runnable):
                 questions=[],
                 total_questions=0,
                 estimated_time="0분",
-                generation_success=False
+                generation_success=False,
             )
 
     @staticmethod
@@ -146,7 +158,9 @@ class QuestionGeneratorTool(Runnable):
 
         return True
 
-    def invoke(self, input_data: PatternAnalyzerResult, config=None, **kwargs) -> QuestionGeneratorResult:
+    def invoke(
+        self, input_data: PatternAnalyzerResult, config=None, **kwargs
+    ) -> QuestionGeneratorResult:
         """
         Runnable 인터페이스 구현
 
@@ -166,7 +180,7 @@ class QuestionGeneratorTool(Runnable):
                 questions=[],
                 total_questions=0,
                 estimated_time="0분",
-                generation_success=False
+                generation_success=False,
             )
 
         try:
@@ -177,15 +191,15 @@ class QuestionGeneratorTool(Runnable):
 
             # 3. 우대조건 패턴만 추출
             preferential_patterns = [
-                pattern for pattern in input_data.analysis_patterns
+                pattern
+                for pattern in input_data.analysis_patterns
                 if pattern.pattern_type == "preferential_condition"
             ]
 
             # 4. 프롬프트 템플릿 생성
             prompts = QuestionFilterPrompts()
             prompt_text = prompts.question_generation_with_rag(
-                preferential_patterns=preferential_patterns,
-                rag_context=rag_context
+                preferential_patterns=preferential_patterns, rag_context=rag_context
             )
 
             prompt_template = PromptTemplate(
@@ -193,16 +207,16 @@ class QuestionGeneratorTool(Runnable):
                 input_variables=[],
                 partial_variables={
                     "format_instructions": self.output_parser.get_format_instructions()
-                }
+                },
             )
 
             # 5. LCEL 체이닝 구성
             chain = (
-                    RunnablePassthrough()
-                    | prompt_template
-                    | self.llm
-                    | self.output_parser
-                    | RunnableLambda(self._convert_to_schema)
+                RunnablePassthrough()
+                | prompt_template
+                | self.llm
+                | self.output_parser
+                | RunnableLambda(self._convert_to_schema)
             )
 
             # 6. 체인 실행
@@ -210,7 +224,9 @@ class QuestionGeneratorTool(Runnable):
             print("🤖 LLM 질문 생성 및 변환 완료")
 
             if result.generation_success:
-                print(f"✅ QuestionGeneratorTool 실행 완료: {result.total_questions}개 질문 생성")
+                print(
+                    f"✅ QuestionGeneratorTool 실행 완료: {result.total_questions}개 질문 생성"
+                )
             else:
                 print("⚠️ QuestionGeneratorTool 부분 완료: 기본 질문으로 대체")
 
@@ -222,5 +238,5 @@ class QuestionGeneratorTool(Runnable):
                 questions=[],
                 total_questions=0,
                 estimated_time="0분",
-                generation_success=False
+                generation_success=False,
             )

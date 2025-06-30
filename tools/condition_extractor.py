@@ -2,6 +2,7 @@
 Tool 1: ConditionExtractorTool
 역할: 우대조건 및 금리정보 청크 데이터 추출
 """
+
 from typing import Optional
 
 from langchain_core.runnables import Runnable, RunnableConfig
@@ -11,7 +12,8 @@ from common.data import NLP_CHUNKS_COLLECTION_NAME, MONGO_URI, DB_NAME
 from schemas.agent_responses import EligibilitySuccessResponse
 from schemas.question_filter_schema import (
     ExtractedProduct,
-    ChunkData, ConditionExtractorResult,
+    ChunkData,
+    ConditionExtractorResult,
 )
 
 
@@ -29,7 +31,9 @@ class ConditionExtractorTool(Runnable):
         client = MongoClient(MONGO_URI)
         self.db = client[DB_NAME]
 
-    def extract_product_result(self, eligibility_response: EligibilitySuccessResponse) -> ConditionExtractorResult:
+    def extract_product_result(
+        self, eligibility_response: EligibilitySuccessResponse
+    ) -> ConditionExtractorResult:
         """
         MongoDB에서 우대조건 및 금리정보 청크 데이터 조회 및 처리
 
@@ -44,8 +48,7 @@ class ConditionExtractorTool(Runnable):
 
             # 상품 코드 추출
             product_codes = [
-                product.product_code
-                for product in eligibility_response.result_products
+                product.product_code for product in eligibility_response.result_products
             ]
 
             # 우대조건 및 금리정보 청크만 조회 (basic_rate_info, preferential_details)
@@ -144,7 +147,9 @@ class ConditionExtractorTool(Runnable):
 
         return True
 
-    def invoke(self, eligibility_response: EligibilitySuccessResponse, config=None,  **kwargs) -> ConditionExtractorResult:
+    def invoke(
+        self, eligibility_response: EligibilitySuccessResponse, config=None, **kwargs
+    ) -> ConditionExtractorResult:
         """
         Tool 실행 메인 로직 - Runnable 필수 메소드
 

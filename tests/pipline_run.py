@@ -22,6 +22,7 @@ from common.data import MONGO_URI
 
 load_dotenv()
 
+
 def create_test_conditions() -> list[EligibilityConditions]:
     """다양한 테스트 조건들 생성"""
 
@@ -55,8 +56,10 @@ def create_test_conditions() -> list[EligibilityConditions]:
 
     return [test_case_1]
 
+
 def create_llm():
-    return ChatOpenAI(model='gpt-4o-mini')
+    return ChatOpenAI(model="gpt-4o-mini")
+
 
 def run_pipeline_test():
     """파이프라인 테스트 실행"""

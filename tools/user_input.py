@@ -7,7 +7,12 @@ import uuid
 from datetime import datetime
 from langchain.schema.runnable import Runnable
 
-from schemas.question_filter_schema import UserResponse, UserInputResult, QuestionGeneratorResult, UserQuestion
+from schemas.question_filter_schema import (
+    UserResponse,
+    UserInputResult,
+    QuestionGeneratorResult,
+    UserQuestion,
+)
 
 
 def _get_api_input(question: str, question_id: str) -> tuple[str, bool]:
@@ -94,9 +99,9 @@ class UserInputTool(Runnable):
             try:
                 user_input = input("👤 답변 (y/n): ").strip().lower()
 
-                if user_input in ['y', 'yes', '예', '네', '1', 'true']:
+                if user_input in ["y", "yes", "예", "네", "1", "true"]:
                     return user_input, True
-                elif user_input in ['n', 'no', '아니오', '아님', '0', 'false']:
+                elif user_input in ["n", "no", "아니오", "아님", "0", "false"]:
                     return user_input, False
                 else:
                     print("⚠️  'y' 또는 'n'으로 답변해주세요.")
@@ -111,9 +116,7 @@ class UserInputTool(Runnable):
 
     @staticmethod
     def _create_user_response(
-            question: UserQuestion,
-            raw_response: str,
-            response_value: bool
+        question: UserQuestion, raw_response: str, response_value: bool
     ) -> UserResponse:
         """
         UserResponse 객체 생성
@@ -132,11 +135,10 @@ class UserInputTool(Runnable):
             category=question.category,
             question=question.question,
             impact=question.impact,
-
             # UserResponse 추가 필드
             response_value=response_value,
             raw_response=raw_response,
-            response_timestamp=datetime.now()
+            response_timestamp=datetime.now(),
         )
 
     @staticmethod
@@ -165,10 +167,7 @@ class UserInputTool(Runnable):
         return True
 
     def invoke(
-            self,
-            input_data: QuestionGeneratorResult,
-            config=None,
-            **kwargs
+        self, input_data: QuestionGeneratorResult, config=None, **kwargs
     ) -> UserInputResult:
         """
         Runnable 인터페이스 구현
@@ -193,14 +192,13 @@ class UserInputTool(Runnable):
                 response_summary={},
                 total_questions=0,
                 answered_questions=0,
-                collection_success=False
+                collection_success=False,
             )
 
         try:
             # 2. 질문 개요 출력
             print(f"\n🎯 총 {input_data.total_questions}개의 질문에 답변해주세요.")
             print(f"🆔 세션 ID: {self.session_id}")
-
 
             # 3. 각 질문별 사용자 응답 수집
             for i, question in enumerate(input_data.questions, 1):
@@ -221,7 +219,7 @@ class UserInputTool(Runnable):
                     user_response = self._create_user_response(
                         question=question,
                         raw_response=raw_response,
-                        response_value=response_value
+                        response_value=response_value,
                     )
 
                     user_responses.append(user_response)
@@ -246,7 +244,7 @@ class UserInputTool(Runnable):
                 response_summary=response_summary,
                 total_questions=input_data.total_questions,
                 answered_questions=len(user_responses),
-                collection_success=len(user_responses) > 0
+                collection_success=len(user_responses) > 0,
             )
 
             # 7. 결과 요약 출력
@@ -273,7 +271,6 @@ class UserInputTool(Runnable):
                 user_responses=user_responses,
                 response_summary={},
                 total_questions=input_data.total_questions,
-                answered_questions=len(user_responses) if 'user_responses' in locals() else 0,
-                collection_success=False
+                answered_questions=len(user_responses),
+                collection_success=False,
             )
-

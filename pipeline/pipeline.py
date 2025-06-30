@@ -34,7 +34,7 @@ class Pipeline:
 
         # 현재 파이프라인 구성
         # self.pipeline = self.build_pipeline_single() # 단일
-        self.pipeline = self.build_pipeline() # 다중
+        self.pipeline = self.build_pipeline()  # 다중
 
         print("✅ MultiAgentPipeline 초기화 완료")
 
@@ -58,7 +58,7 @@ class Pipeline:
         # 각 단계의 출력이 다음 단계의 입력이 됨
         pipeline_components = [
             self.eligibility_agent.runnable,
-            self.question_filter_agent.runnable, # 역질문
+            self.question_filter_agent.runnable,  # 역질문
             # TODO: 향후 추가될 에이전트들
             # self.strategy_agent.runnable,
             # self.comparator_agent.runnable,

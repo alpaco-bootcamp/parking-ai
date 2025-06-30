@@ -20,8 +20,8 @@ class QuestionFilterTools:
         """
 
         tools_dict = {
-            'condition_extractor': ConditionExtractorTool(),
-            'pattern_analyzer': PatternAnalyzerTool(llm)
+            "condition_extractor": ConditionExtractorTool(),
+            "pattern_analyzer": PatternAnalyzerTool(llm),
         }
 
         return QuestionFilterToolsWrapper(**tools_dict)

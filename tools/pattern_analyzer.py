@@ -37,7 +37,9 @@ class PatternAnalyzerTool(Runnable):
         self.output_parser = PydanticOutputParser(pydantic_object=PatternAnalysisOutput)
 
     @staticmethod
-    def _extract_analysis_data(extracted_conditions: ConditionExtractorResult) -> dict[str, list[str]]:
+    def _extract_analysis_data(
+        extracted_conditions: ConditionExtractorResult,
+    ) -> dict[str, list[str]]:
         """
         금리정보와 우대조건 텍스트 분리 추출
 
@@ -127,7 +129,9 @@ class PatternAnalyzerTool(Runnable):
 
         return True
 
-    def invoke(self, extracted_conditions: ConditionExtractorResult, config=None, **kwargs) -> PatternAnalyzerResult:
+    def invoke(
+        self, extracted_conditions: ConditionExtractorResult, config=None, **kwargs
+    ) -> PatternAnalyzerResult:
         """
         Tool 실행 메인 로직
 
@@ -171,7 +175,7 @@ class PatternAnalyzerTool(Runnable):
                     "format_instructions": self.output_parser.get_format_instructions()
                 },
             )
-            print(f'prompt_template: {prompt_template.template}')
+            print(f"prompt_template: {prompt_template.template}")
 
             # 4. LCEL 체이닝 구성
             chain = (
@@ -182,7 +186,7 @@ class PatternAnalyzerTool(Runnable):
                 | RunnableLambda(self._convert_to_schema)
             )
 
-            print(f'🔎 llm 요청중..')
+            print(f"🔎 llm 요청중..")
 
             # 5. 체인 실행
             result = chain.invoke({})

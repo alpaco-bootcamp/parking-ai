@@ -147,11 +147,10 @@ class QuestionFilterPrompts:
 
         return {"title": title, "content": content}
 
-
     @staticmethod
     def question_generation_with_rag(
-            preferential_patterns: list,
-            rag_context: str,
+        preferential_patterns: list,
+        rag_context: str,
     ) -> str:
         """
         우대조건 패턴과 RAG 검색 결과를 기반으로 사용자 질문 생성 프롬프트
@@ -166,10 +165,12 @@ class QuestionFilterPrompts:
 
         # 패턴 요약 생성
         if preferential_patterns:
-            pattern_summary = "\n".join([
-                f"- {pattern.pattern_name}: {pattern.standard_keyword} (빈도: {pattern.frequency}, 은행: {', '.join(pattern.affected_banks[:3])})"
-                for pattern in preferential_patterns
-            ])
+            pattern_summary = "\n".join(
+                [
+                    f"- {pattern.pattern_name}: {pattern.standard_keyword} (빈도: {pattern.frequency}, 은행: {', '.join(pattern.affected_banks[:3])})"
+                    for pattern in preferential_patterns
+                ]
+            )
         else:
             pattern_summary = "분석된 우대조건 패턴이 없습니다."
 
