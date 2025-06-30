@@ -65,7 +65,8 @@ class QuestionAgentContext:
             conditions: 사용자가 입력한 우대조건 정보
         """
         self.user_conditions_ctx.set(conditions)
-        print(f"👤 Context에 사용자 조건 저장됨 (예산: {conditions.budget:,}원)")
+        print(f"👤 Context에 사용자 조건 저장중 (조건: {conditions})")
+        # print(f"👤 Context에 사용자 조건 저장됨 (예산: {conditions.budget:,}원)")
 
     def get_user_conditions(self) -> EligibilityConditions | None:
         """
@@ -76,7 +77,7 @@ class QuestionAgentContext:
         """
         conditions = self.user_conditions_ctx.get()
         if conditions:
-            print(f"👤 Context에서 사용자 조건 조회됨 (예산: {conditions.budget:,}원)")
+            print(f"👤Context에 서 사용자 조건 조회됨 (예산: {conditions}원)")
         else:
             print("⚠️ Context에 사용자 조건이 없음")
         return conditions

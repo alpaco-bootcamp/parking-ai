@@ -18,7 +18,8 @@ from schemas.question_schema import UserInputResult
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from schemas.eligibility_conditions import EligibilityConditions
-from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse, QuestionErrorResponse
+from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse, QuestionErrorResponse, \
+    QuestionSuccessResponse
 from common.data import MONGO_URI
 
 load_dotenv()
@@ -97,16 +98,23 @@ def run_pipeline_test():
             result = pipeline.run(test_condition)
 
             # 결과 출력
-            if isinstance(result, UserInputResult):
-                print(f"   ✅ 성공: 사용자 입력 수집 완료")
-                print(f"   📊 질문 응답: {result.answered_questions}/{result.total_questions}개")
-                print(f"   📋 응답 요약: {result.response_summary}")
-                print(f"   🎯 수집 성공: {result.collection_success}")
+            if isinstance(result, QuestionSuccessResponse):
+                print(f"   ✅ 성공: QuestionAgent 실행 완료")
+                print(f"   📋 적격 통장: {len(result.eligible_products)}개")
+                print(f"   💬 질문 응답: {len(result.user_responses)}개")
+                print(f"   📊 응답 요약: {result.response_summary}")
+                print(f"   🎯 다음 단계: {result.next_agent}")
+
+                # 적격 통장 일부 출력
+                if result.eligible_products:
+                    print(f"   🏦 통장 목록:")
+                    for product in result.eligible_products[:3]:  # 처음 3개만 출력
+                        print(f"      • {product.product_name}")
 
                 # 사용자 응답 일부 출력
                 if result.user_responses:
                     print(f"   💬 사용자 응답:")
-                    for response in result.user_responses:  # 처음 3개만 출력
+                    for response in result.user_responses[:3]:  # 처음 3개만 출력
                         status = "✅" if response.response_value else "❌"
                         print(f"      {status} {response.question[:50]}...")
 

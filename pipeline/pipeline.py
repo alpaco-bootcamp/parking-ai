@@ -5,7 +5,8 @@ from langchain_core.language_models import BaseLanguageModel
 from agents.eligibility_agent import EligibilityAgent
 from agents.question_agent import QuestionAgent
 from schemas.eligibility_conditions import EligibilityConditions
-from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse, QuestionErrorResponse
+from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse, QuestionErrorResponse, \
+    QuestionSuccessResponse
 from schemas.question_schema import UserInputResult
 
 
@@ -71,7 +72,7 @@ class Pipeline:
 
     def run(
         self, conditions: EligibilityConditions
-    ) -> UserInputResult | QuestionErrorResponse:
+    ) -> QuestionSuccessResponse | QuestionErrorResponse:
         """
         파이프라인 실행
 
@@ -79,7 +80,7 @@ class Pipeline:
             conditions: 사용자 우대조건
 
         Returns:
-             UserInputResult | QuestionErrorResponse: 파이프라인 실행 결과
+            QuestionSuccessResponse | QuestionErrorResponse: 사용자 질문-답변 데이터 + 적격 통장 목록
         """
         print("🚀 MultiAgentPipeline 실행 시작")
 
@@ -97,7 +98,9 @@ class Pipeline:
 
         except Exception as e:
             print(f"❌ MultiAgentPipeline 실행 오류: {e}")
-            return EligibilityErrorResponse(error=f"파이프라인 실행 오류: {str(e)}")
+            return QuestionErrorResponse(
+                error=f"파이프라인 실행 실패: {str(e)}"
+            )
 
     @staticmethod
     def get_pipeline_info() -> dict[str, Any]:

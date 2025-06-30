@@ -6,7 +6,7 @@ from context.question_agent_context import QuestionAgentContext
 from tools.wrappers.question_tool_wrappers import QuestionTools
 from schemas.agent_responses import (
     EligibilitySuccessResponse,
-    QuestionErrorResponse,
+    QuestionErrorResponse, QuestionSuccessResponse,
 )
 from schemas.question_schema import PatternAnalyzerResult, UserInputResult
 
@@ -31,10 +31,11 @@ class QuestionAgent:
             test_mode: 테스트 모드 여부 (콘솔/API 전환용)
         """
         self.llm = llm
-        # Tools 초기화
-        self.tools = QuestionTools.get_tools(llm, test_mode)
-
         self.agent_ctx = QuestionAgentContext()  # Agent별 독립적인 context
+
+        # Tools 초기화
+        self.tools = QuestionTools.get_tools(llm, test_mode, self.agent_ctx)
+
 
         # Runnable 객체로 반환하여 파이프라인에서 실행
         self.runnable = RunnableLambda(self.execute)
@@ -64,6 +65,9 @@ class QuestionAgent:
             self.tools.question_generator, # Step 3: QuestionGenerator Tool 실행
             # QuestionGeneratorResult → UserInputResult
             self.tools.user_input, # Step 4: UserInput Tool 실행
+            # UserInputResult → QuestionSuccessResponse
+            self.tools.response_formatter, # Step 5: ResponseFormatter Tool 실행
+
         )
 
     @staticmethod
@@ -81,7 +85,7 @@ class QuestionAgent:
 
     def execute(
         self, eligibility_response: EligibilitySuccessResponse
-    ) -> UserInputResult | QuestionErrorResponse:
+    ) -> QuestionSuccessResponse | QuestionErrorResponse:
         """
         Agent 실행
 
@@ -89,7 +93,7 @@ class QuestionAgent:
             eligibility_response: EligibilityAgent의 출력 결과
 
         Returns:
-            UserInputResult | QuestionErrorResponse: 사용자 입력 수 결과
+            QuestionSuccessResponse | QuestionErrorResponse: 사용자 질문-답변 데이터 + 적격 통장 목록
         """
         start_time = time.time()
         print("🚀 QuestionAgent 실행 시작")
@@ -108,7 +112,9 @@ class QuestionAgent:
 
             # Context에 데이터 설정
             self.agent_ctx.set_eligible_products(eligibility_response.result_products)
+            print(f"agent ids: {id(self.agent_ctx)}")
             self.agent_ctx.set_user_conditions(eligibility_response.user_conditions)
+            print(f"eligibility_response.user_conditions: {eligibility_response.user_conditions}")
             self.agent_ctx.set_session_id(f"session_{int(start_time)}")
 
             tool_chain = self._build_runnable_chain()

@@ -26,6 +26,9 @@ class QuestionToolsWrapper(BaseModel):
     user_input: Any = Field(
         description="환경별 적응형 사용자 입력 처리 Tool (콘솔/API 전환)"
     )
+    response_formatter: Any = Field(
+        description="QuestionAgent 최종 출력 포맷팅 Tool (StrategyAgent 입력용)"
+    )
 
 
 """
