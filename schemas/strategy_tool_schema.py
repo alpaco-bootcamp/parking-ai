@@ -12,6 +12,21 @@ Tool 1: InterestCalculatorTool 스키마
 """
 
 
+
+class ChunkInfo(BaseModel):
+    """청크 정보"""
+
+    chunk_type: str = Field(description="청크 타입 (basic_rate_info, preferential_details)")
+    content_natural: str = Field(description="자연어 청크 내용")
+
+
+class ProductDetailInfo(BaseModel):
+    """상품 상세 정보 (MongoDB 조회 결과)"""
+
+    product_code: str = Field(description="상품 코드")
+    product_name: str = Field(description="상품명")
+    chunks: list[ChunkInfo] = Field(description="금리정보 및 우대조건 청크 목록")
+
 class ProductInterestCalculation(BaseModel):
     """개별 상품 이자 계산 결과"""
 
@@ -22,6 +37,11 @@ class ProductInterestCalculation(BaseModel):
     applied_conditions: list[str] = Field(description="적용된 우대조건 목록")
     feasibility: str = Field(description="조건 달성 난이도 (높음/중간/낮음)")
 
+
+class InterestCalculationOutput(BaseModel):
+    """이자계산 LLM 출력 파싱용 스키마"""
+
+    calculations: list[ProductInterestCalculation] = Field(description="계산 결과 목록")
 
 class InterestCalculatorResult(BaseModel):
     """InterestCalculatorTool 결과"""
