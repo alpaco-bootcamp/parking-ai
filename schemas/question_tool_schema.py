@@ -1,8 +1,5 @@
-from typing import Literal
-
-import pymongo
 from pydantic import BaseModel, Field
-from typing import Any
+from typing import Any, Literal
 from datetime import datetime
 
 
