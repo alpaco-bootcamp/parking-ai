@@ -12,7 +12,7 @@ from langchain_openai import ChatOpenAI
 from pymongo import MongoClient
 
 from pipeline.pipeline import Pipeline
-from schemas.question_schema import UserInputResult
+from schemas.question_tool_schema import UserInputResult
 
 # 프로젝트 루트 경로 추가
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -37,6 +37,8 @@ def create_test_conditions() -> list[EligibilityConditions]:
         min_interest_rate=1.0,
         categories=["online"],
         special_conditions=["first_banking"],
+        budget=20000000,
+        deposit_period=6
     )
 
     # 테스트 케이스 2: 낮은 금리, 일반 조건
@@ -44,6 +46,8 @@ def create_test_conditions() -> list[EligibilityConditions]:
         min_interest_rate=2.0,
         categories=["anyone"],
         special_conditions=["bank_app", "using_card"],
+        budget=20000000,
+        deposit_period=12
     )
 
     # 테스트 케이스 3: 매우 높은 금리, 모든 조건 (매칭되는 상품이 적을 것으로 예상)
@@ -58,6 +62,8 @@ def create_test_conditions() -> list[EligibilityConditions]:
             "using_utility_bill",
             "using_card",
         ],
+        budget=20000000,
+        deposit_period=24
     )
 
     return [test_case_1]

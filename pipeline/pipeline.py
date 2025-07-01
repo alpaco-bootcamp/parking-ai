@@ -11,7 +11,7 @@ from schemas.agent_responses import (
     QuestionErrorResponse,
     QuestionSuccessResponse,
 )
-from schemas.question_schema import UserInputResult
+from schemas.question_tool_schema import UserInputResult
 
 
 class Pipeline:

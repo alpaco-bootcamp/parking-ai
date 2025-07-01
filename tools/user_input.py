@@ -7,7 +7,7 @@ import uuid
 from datetime import datetime
 from langchain.schema.runnable import Runnable
 
-from schemas.question_schema import (
+from schemas.question_tool_schema import (
     UserResponse,
     UserInputResult,
     QuestionGeneratorResult,

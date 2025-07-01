@@ -1,7 +1,7 @@
 from langchain_core.language_models import BaseLanguageModel
 
 from context.question_agent_context import QuestionAgentContext
-from schemas.question_schema import QuestionToolsWrapper
+from schemas.question_tool_schema import QuestionToolsWrapper
 from tools.condition_extractor import ConditionExtractorTool
 from tools.pattern_analyzer import PatternAnalyzerTool
 from tools.question_generator import QuestionGeneratorTool

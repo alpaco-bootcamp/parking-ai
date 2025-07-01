@@ -2,7 +2,7 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Any
 from schemas.eligibility_conditions import EligibilityConditions
-from schemas.question_schema import UserResponse
+from schemas.question_tool_schema import UserResponse
 
 
 class SimpleProduct(BaseModel):

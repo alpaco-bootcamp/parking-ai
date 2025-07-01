@@ -11,7 +11,7 @@ from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
 from langchain_core.language_models import BaseLanguageModel
 
 from prompts.question_prompts import QuestionPrompts
-from schemas.question_schema import (
+from schemas.question_tool_schema import (
     ConditionExtractorResult,
     PatternAnalysisOutput,
     PatternAnalyzerResult,

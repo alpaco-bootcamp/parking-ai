@@ -9,7 +9,6 @@ from schemas.agent_responses import (
     QuestionErrorResponse,
     QuestionSuccessResponse,
 )
-from schemas.question_schema import PatternAnalyzerResult, UserInputResult
 
 
 class QuestionAgent:

@@ -12,12 +12,12 @@ from langchain_core.language_models import BaseLanguageModel
 
 from rag.retriever import ParkingRetriever
 from prompts.question_prompts import QuestionPrompts
-from schemas.question_schema import (
+from schemas.question_tool_schema import (
     QuestionGeneratorResult,
     UserQuestion,
     PATTERN_TO_CATEGORY_MAP,
 )
-from schemas.question_schema import PatternAnalyzerResult
+from schemas.question_tool_schema import PatternAnalyzerResult
 
 
 class QuestionGeneratorTool(Runnable):

@@ -10,7 +10,7 @@ from pymongo import MongoClient
 
 from common.data import NLP_CHUNKS_COLLECTION_NAME, MONGO_URI, DB_NAME
 from schemas.agent_responses import EligibilitySuccessResponse
-from schemas.question_schema import (
+from schemas.question_tool_schema import (
     ExtractedProduct,
     ChunkData,
     ConditionExtractorResult,

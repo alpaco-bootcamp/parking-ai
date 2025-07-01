@@ -7,7 +7,7 @@ from langchain.schema.runnable import Runnable
 
 from context.question_agent_context import QuestionAgentContext
 from schemas.agent_responses import QuestionSuccessResponse, QuestionErrorResponse
-from schemas.question_schema import UserInputResult
+from schemas.question_tool_schema import UserInputResult
 
 
 class ResponseFormatterTool(Runnable):
