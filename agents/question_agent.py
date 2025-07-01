@@ -6,7 +6,8 @@ from context.question_agent_context import QuestionAgentContext
 from tools.wrappers.question_tool_wrappers import QuestionTools
 from schemas.agent_responses import (
     EligibilitySuccessResponse,
-    QuestionErrorResponse, QuestionSuccessResponse,
+    QuestionErrorResponse,
+    QuestionSuccessResponse,
 )
 from schemas.question_schema import PatternAnalyzerResult, UserInputResult
 
@@ -36,7 +37,6 @@ class QuestionAgent:
         # Tools 초기화
         self.tools = QuestionTools.get_tools(llm, test_mode, self.agent_ctx)
 
-
         # Runnable 객체로 반환하여 파이프라인에서 실행
         self.runnable = RunnableLambda(self.execute)
 
@@ -56,18 +56,16 @@ class QuestionAgent:
             RunnableSequence: Tool들이 직접 연결된 Runnable 체인
         """
         return RunnableSequence(
-
             # EligibilitySuccessResponse → ConditionExtractorResult
-            self.tools.condition_extractor, # Step 1: ConditionExtractor Tool 실행
+            self.tools.condition_extractor,  # Step 1: ConditionExtractor Tool 실행
             # ConditionExtractorResult → PatternAnalyzerResult
-            self.tools.pattern_analyzer, # Step 2: PatternAnalyzer Tool 실행
+            self.tools.pattern_analyzer,  # Step 2: PatternAnalyzer Tool 실행
             # PatternAnalyzerResult → QuestionGeneratorResult
-            self.tools.question_generator, # Step 3: QuestionGenerator Tool 실행
+            self.tools.question_generator,  # Step 3: QuestionGenerator Tool 실행
             # QuestionGeneratorResult → UserInputResult
-            self.tools.user_input, # Step 4: UserInput Tool 실행
+            self.tools.user_input,  # Step 4: UserInput Tool 실행
             # UserInputResult → QuestionSuccessResponse
-            self.tools.response_formatter, # Step 5: ResponseFormatter Tool 실행
-
+            self.tools.response_formatter,  # Step 5: ResponseFormatter Tool 실행
         )
 
     @staticmethod
@@ -114,19 +112,19 @@ class QuestionAgent:
             self.agent_ctx.set_eligible_products(eligibility_response.result_products)
             print(f"agent ids: {id(self.agent_ctx)}")
             self.agent_ctx.set_user_conditions(eligibility_response.user_conditions)
-            print(f"eligibility_response.user_conditions: {eligibility_response.user_conditions}")
+            print(
+                f"eligibility_response.user_conditions: {eligibility_response.user_conditions}"
+            )
             self.agent_ctx.set_session_id(f"session_{int(start_time)}")
 
             tool_chain = self._build_runnable_chain()
             result = tool_chain.invoke(eligibility_response)
 
             execution_time = time.time() - start_time
-            print(
-                f"✅ QuestionAgent 실행 완료 (소요시간: {execution_time:.2f}초)"
-            )
+            print(f"✅ QuestionAgent 실행 완료 (소요시간: {execution_time:.2f}초)")
 
             # 🔥 최종 정보
-            if hasattr(result, 'collection_success'):
+            if hasattr(result, "collection_success"):
                 print(
                     f"📊 사용자 입력 결과: {result.answered_questions}/{result.total_questions}개 질문 응답 완료"
                 )

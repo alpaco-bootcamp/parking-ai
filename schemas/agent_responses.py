@@ -65,15 +65,19 @@ class QuestionSuccessResponse(BaseModel):
     """QuestionAgent 성공 응답"""
 
     eligible_products: list[SimpleProduct] = Field(description="1차 필터링된 통장 목록")
-    user_responses: list[UserResponse] = Field(description="사용자 질문-답변 목록")  # 추가
-    response_summary: dict[str, bool] = Field(description="질문별 조건 충족 여부 요약")  # 추가
+    user_responses: list[UserResponse] = Field(
+        description="사용자 질문-답변 목록"
+    )  # 추가
+    response_summary: dict[str, bool] = Field(
+        description="질문별 조건 충족 여부 요약"
+    )  # 추가
     user_conditions: EligibilityConditions = Field(description="사용자 조건")
-    processing_step: str = Field(
-        default="question_completed", description="처리 단계"
-    )
+    processing_step: str = Field(default="question_completed", description="처리 단계")
     next_agent: str = Field(default="StrategyAgent", description="다음 에이전트")
     success: bool = Field(default=True, description="성공 여부")
-    error: str | None = Field(default=None, description="에러 메시지")  # Optional → str | None
+    error: str | None = Field(
+        default=None, description="에러 메시지"
+    )  # Optional → str | None
 
 
 class QuestionErrorResponse(BaseModel):
@@ -91,9 +95,9 @@ class QuestionErrorResponse(BaseModel):
     user_conditions: EligibilityConditions | None = Field(  # Optional → | None
         default=None, description="사용자 조건"
     )
-    processing_step: str = Field(
-        default="question_failed", description="처리 단계"
-    )
-    next_agent: str | None = Field(default=None, description="다음 에이전트")  # Optional → str | None
+    processing_step: str = Field(default="question_failed", description="처리 단계")
+    next_agent: str | None = Field(
+        default=None, description="다음 에이전트"
+    )  # Optional → str | None
     success: bool = Field(default=False, description="성공 여부")
     error: str = Field(description="에러 메시지")

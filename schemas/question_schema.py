@@ -127,8 +127,7 @@ class UserQuestion(BaseModel):
     )
     impact: str = Field(description="해당 조건의 영향도나 중요성 설명")
     related_banks: list[str] = Field(
-        default_factory=list,
-        description="이 조건이 적용되는 은행 목록"
+        default_factory=list, description="이 조건이 적용되는 은행 목록"
     )
 
 
@@ -172,8 +171,7 @@ class UserResponse(UserQuestion):
     response_timestamp: datetime | None = Field(default=None, description="응답 시간")
 
     affected_banks: list[str] = Field(
-        default_factory=list,
-        description="해당 조건이 적용되는 은행 목록"
+        default_factory=list, description="해당 조건이 적용되는 은행 목록"
     )
 
 

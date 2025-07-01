@@ -5,8 +5,12 @@ from langchain_core.language_models import BaseLanguageModel
 from agents.eligibility_agent import EligibilityAgent
 from agents.question_agent import QuestionAgent
 from schemas.eligibility_conditions import EligibilityConditions
-from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse, QuestionErrorResponse, \
-    QuestionSuccessResponse
+from schemas.agent_responses import (
+    EligibilitySuccessResponse,
+    EligibilityErrorResponse,
+    QuestionErrorResponse,
+    QuestionSuccessResponse,
+)
 from schemas.question_schema import UserInputResult
 
 
@@ -98,9 +102,7 @@ class Pipeline:
 
         except Exception as e:
             print(f"❌ MultiAgentPipeline 실행 오류: {e}")
-            return QuestionErrorResponse(
-                error=f"파이프라인 실행 실패: {str(e)}"
-            )
+            return QuestionErrorResponse(error=f"파이프라인 실행 실패: {str(e)}")
 
     @staticmethod
     def get_pipeline_info() -> dict[str, Any]:

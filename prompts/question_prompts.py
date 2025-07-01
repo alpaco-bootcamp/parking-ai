@@ -149,9 +149,7 @@ class QuestionPrompts:
 
     @staticmethod
     def question_generation_with_rag(
-            preferential_patterns: list,
-            rag_context: str,
-            affected_banks: list[str] = None
+        preferential_patterns: list, rag_context: str, affected_banks: list[str] = None
     ) -> str:
         """
         우대조건 패턴과 RAG 검색 결과를 기반으로 사용자 질문 생성 프롬프트
@@ -165,7 +163,7 @@ class QuestionPrompts:
             str: 구조화된 질문 생성 프롬프트
         """
 
-        bank_info, bank_context = '', ''
+        bank_info, bank_context = "", ""
 
         # 은행 목록 처리
         if affected_banks:

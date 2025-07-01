@@ -13,7 +13,11 @@ class QuestionTools:
     """QuestionAgent용 Tools 관리 클래스"""
 
     @staticmethod
-    def get_tools(llm: BaseLanguageModel, test_mode: bool = True, agent_context: QuestionAgentContext = None) -> QuestionToolsWrapper:
+    def get_tools(
+        llm: BaseLanguageModel,
+        test_mode: bool = True,
+        agent_context: QuestionAgentContext = None,
+    ) -> QuestionToolsWrapper:
         """
         QuestionAgent용 Tools 반환
 
@@ -30,7 +34,7 @@ class QuestionTools:
             "pattern_analyzer": PatternAnalyzerTool(llm),
             "question_generator": QuestionGeneratorTool(llm),
             "user_input": UserInputTool(test_mode),
-            "response_formatter": ResponseFormatterTool(agent_context)
+            "response_formatter": ResponseFormatterTool(agent_context),
         }
 
         return QuestionToolsWrapper(**tools_dict)

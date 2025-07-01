@@ -210,7 +210,9 @@ class QuestionGeneratorTool(Runnable):
             # 5. 프롬프트 템플릿 생성
             prompts = QuestionPrompts()
             prompt_text = prompts.question_generation_with_rag(
-                preferential_patterns=preferential_patterns, rag_context=rag_context, affected_banks=affected_banks
+                preferential_patterns=preferential_patterns,
+                rag_context=rag_context,
+                affected_banks=affected_banks,
             )
 
             prompt_template = PromptTemplate(
@@ -220,7 +222,6 @@ class QuestionGeneratorTool(Runnable):
                     "format_instructions": self.output_parser.get_format_instructions()
                 },
             )
-
 
             print("🤖 LLM 질문 중..")
             print(prompt_template.template)

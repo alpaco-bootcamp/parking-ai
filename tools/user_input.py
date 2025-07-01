@@ -14,6 +14,7 @@ from schemas.question_schema import (
     UserQuestion,
 )
 
+
 class UserInputTool(Runnable):
     """
     사용자 입력 처리 Tool
@@ -120,7 +121,7 @@ class UserInputTool(Runnable):
             response_value=response_value,
             raw_response=raw_response,
             response_timestamp=datetime.now(),
-            affected_banks=question.related_banks
+            affected_banks=question.related_banks,
         )
 
     @staticmethod

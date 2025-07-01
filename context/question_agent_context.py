@@ -22,19 +22,14 @@ class QuestionAgentContext:
     def __init__(self):
         """AgentContext 인스턴스 초기화"""
         self.eligible_products_ctx: ContextVar[list[SimpleProduct]] = ContextVar(
-            'eligible_products',
-            default=[]
+            "eligible_products", default=[]
         )
 
         self.user_conditions_ctx: ContextVar[EligibilityConditions | None] = ContextVar(
-            'user_conditions',
-            default=None
+            "user_conditions", default=None
         )
 
-        self.session_id_ctx: ContextVar[str] = ContextVar(
-            'session_id',
-            default=''
-        )
+        self.session_id_ctx: ContextVar[str] = ContextVar("session_id", default="")
 
     def set_eligible_products(self, products: list[SimpleProduct]) -> None:
         """
@@ -109,7 +104,7 @@ class QuestionAgentContext:
         """
         self.eligible_products_ctx.set([])
         self.user_conditions_ctx.set(None)
-        self.session_id_ctx.set('')
+        self.session_id_ctx.set("")
         print("🔄 Agent Context 모든 데이터 초기화됨")
 
     def get_context_info(self) -> dict[str, Any]:
@@ -123,5 +118,5 @@ class QuestionAgentContext:
             "eligible_products_count": len(self.eligible_products_ctx.get()),
             "has_user_conditions": self.user_conditions_ctx.get() is not None,
             "session_id": self.session_id_ctx.get(),
-            "context_status": "active" if self.session_id_ctx.get() else "empty"
+            "context_status": "active" if self.session_id_ctx.get() else "empty",
         }

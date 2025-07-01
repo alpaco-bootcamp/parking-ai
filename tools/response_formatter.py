@@ -1,6 +1,6 @@
 """
 Tool 5: ResponseFormatterTool
-역할: QuestionFilterAgent의 최종 출력 포맷팅 (StrategyAgent 입력용)
+역할: QuestionAgent의 최종 출력 포맷팅 (StrategyAgent 입력용)
 """
 
 from langchain.schema.runnable import Runnable
@@ -12,7 +12,7 @@ from schemas.question_schema import UserInputResult
 
 class ResponseFormatterTool(Runnable):
     """
-    QuestionFilterAgent의 최종 응답을 StrategyAgent용으로 포맷팅하는 Tool
+    QuestionAgent의 최종 응답을 StrategyAgent용으로 포맷팅하는 Tool
 
     기능:
     - UserInputResult + Context 데이터를 통합
@@ -54,7 +54,9 @@ class ResponseFormatterTool(Runnable):
 
         return True
 
-    def invoke(self, input_data: UserInputResult, config=None, **kwargs) -> QuestionSuccessResponse | QuestionErrorResponse:
+    def invoke(
+        self, input_data: UserInputResult, config=None, **kwargs
+    ) -> QuestionSuccessResponse | QuestionErrorResponse:
         """
         Runnable 인터페이스 구현
 
@@ -69,9 +71,7 @@ class ResponseFormatterTool(Runnable):
 
         # 1. 입력 데이터 검증
         if not self._validate_input(input_data):
-            return QuestionErrorResponse(
-                error="사용자 입력 데이터 검증 실패"
-            )
+            return QuestionErrorResponse(error="사용자 입력 데이터 검증 실패")
 
         try:
             # 2. Context에서 데이터 조회
@@ -91,7 +91,9 @@ class ResponseFormatterTool(Runnable):
                     error="Context에서 사용자 조건을 찾을 수 없음"
                 )
 
-            print(f"📋 Context에서 데이터 조회 완료: 통장 {len(eligible_products)}개, 응답 {len(input_data.user_responses)}개")
+            print(
+                f"📋 Context에서 데이터 조회 완료: 통장 {len(eligible_products)}개, 응답 {len(input_data.user_responses)}개"
+            )
 
             # 3. 최종 응답 생성
             response = QuestionSuccessResponse(
@@ -102,17 +104,17 @@ class ResponseFormatterTool(Runnable):
                 processing_step="question_filter_completed",
                 next_agent="StrategyAgent",
                 success=True,
-                error=None
+                error=None,
             )
 
             print("✅ ResponseFormatterTool 실행 완료")
             print(f"🎯 다음 단계: {response.next_agent}")
-            print(f"📊 최종 데이터: 통장 {len(response.eligible_products)}개, 응답 {len(response.user_responses)}개")
+            print(
+                f"📊 최종 데이터: 통장 {len(response.eligible_products)}개, 응답 {len(response.user_responses)}개"
+            )
 
             return response
 
         except Exception as e:
             print(f"❌ ResponseFormatterTool 실행 실패: {str(e)}")
-            return QuestionErrorResponse(
-                error=f"응답 포맷팅 실패: {str(e)}"
-            )
+            return QuestionErrorResponse(error=f"응답 포맷팅 실패: {str(e)}")

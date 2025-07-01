@@ -18,8 +18,12 @@ from schemas.question_schema import UserInputResult
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from schemas.eligibility_conditions import EligibilityConditions
-from schemas.agent_responses import EligibilitySuccessResponse, EligibilityErrorResponse, QuestionErrorResponse, \
-    QuestionSuccessResponse
+from schemas.agent_responses import (
+    EligibilitySuccessResponse,
+    EligibilityErrorResponse,
+    QuestionErrorResponse,
+    QuestionSuccessResponse,
+)
 from common.data import MONGO_URI
 
 load_dotenv()
@@ -128,6 +132,7 @@ def run_pipeline_test():
     except Exception as e:
         print(f"❌ 테스트 실행 중 오류 발생: {e}")
         import traceback
+
         traceback.print_exc()
 
 
