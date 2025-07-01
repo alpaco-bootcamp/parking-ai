@@ -5,7 +5,7 @@ InterestCalculatorTool
 
 from datetime import datetime
 from langchain.schema.runnable import Runnable
-from langchain.llms.base import LLM
+from langchain_core.language_models import BaseLanguageModel
 from pymongo import MongoClient
 
 from common.data import NLP_CHUNKS_COLLECTION_NAME, MONGO_URI, DB_NAME
@@ -26,12 +26,12 @@ class InterestCalculatorTool(Runnable):
     출력: InterestCalculatorResult
     """
 
-    def __init__(self, llm: LLM):
+    def __init__(self, llm: BaseLanguageModel):
         """
         Tool 초기화
 
         Args:
-            llm: LangChain LLM 인스턴스
+            llm: 사용할 llm모델
         """
         super().__init__()
         self.llm = llm
@@ -40,7 +40,7 @@ class InterestCalculatorTool(Runnable):
 
         print("✅ InterestCalculatorTool 초기화 완료")
 
-    def _extract_product_details(self, eligible_products: list[SimpleProduct]) -> list[ProductDetailInfo]:
+    def extract_product_details(self, eligible_products: list[SimpleProduct]) -> list[ProductDetailInfo]:
         """
         MongoDB에서 상품별 필요한 데이터만 선택적 추출
 
@@ -100,7 +100,7 @@ class InterestCalculatorTool(Runnable):
             print(f"❌ 상품 상세 정보 추출 실패: {str(e)}")
             return []
 
-    def _calculate_with_llm(
+    def calculate_with_llm(
             self,
             product_details: list[ProductDetailInfo],
             question_response: QuestionSuccessResponse
@@ -209,22 +209,13 @@ class InterestCalculatorTool(Runnable):
         Returns:
             InterestCalculatorResult: 성공 응답
         """
-        # 수익률 상위 10개 추출
-        sorted_calculations = sorted(
-            calculations,
-            key=lambda x: x.interest,
-            reverse=True
-        )
-        top_10_products = [
-            calc.product_name for calc in sorted_calculations[:10]
-        ]
 
         return InterestCalculatorResult(
             calculations=calculations,
+            user_responses=question_response.user_responses,
             total_products_calculated=len(calculations),
             user_conditions=question_response.user_conditions,
             calculation_timestamp=datetime.now().isoformat(),
-            highest_interest_products=top_10_products,
             success=True,
             error=None
         )
@@ -241,13 +232,12 @@ class InterestCalculatorTool(Runnable):
             InterestCalculatorResult: 에러 응답
         """
 
-
         return InterestCalculatorResult(
             calculations=[],
+            user_responses=[],
             total_products_calculated=0,
             user_conditions=EligibilityConditions(min_interest_rate=0.0),
             calculation_timestamp=datetime.now().isoformat(),
-            highest_interest_products=[],
             success=False,
             error=error_message
         )
@@ -300,14 +290,14 @@ class InterestCalculatorTool(Runnable):
 
         try:
             # 2. 상품 상세 정보 추출
-            product_details = self._extract_product_details(input_data.eligible_products)
+            product_details = self.extract_product_details(input_data.eligible_products)
             if not product_details:
                 return self._format_error_response("상품 상세 정보를 가져올 수 없습니다.")
 
             print(f"📋 {len(product_details)}개 상품 정보 추출 완료")
 
             # 3. LLM 기반 이자 계산
-            calculations = self._calculate_with_llm(product_details, input_data)
+            calculations = self.calculate_with_llm(product_details, input_data)
             if not calculations:
                 return self._format_error_response("이자 계산에 실패했습니다.")
 
