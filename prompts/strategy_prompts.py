@@ -90,7 +90,7 @@ class StrategyPrompts:
             top_interest_calculations: list[ProductInterestCalculation],
             user_conditions: EligibilityConditions,
             user_responses: list[UserResponse],
-            max_accounts_number: int = 5
+            max_account_number: int = 5
     ) -> str:
         """
         전략 시나리오 생성용 프롬프트
@@ -99,7 +99,7 @@ class StrategyPrompts:
             top_interest_calculations: 상위 10개 이자 계산 결과
             user_conditions: 사용자 조건
             user_responses: 사용자 질문-답변 목록
-            max_accounts_number: 시나리오별 최대 통장 개수 (기본값: 5개)
+            max_account_number: 시나리오별 최대 통장 개수 (기본값: 5개)
 
         Returns:
             str: 시나리오 생성용 프롬프트
@@ -148,7 +148,7 @@ class StrategyPrompts:
     - 목표: 금리 구간별 최적화를 통한 수익 극대화
     - 방법: 각 통장의 고금리 구간을 최대한 활용하여 예치금 분산 배치
     - 예시: 저금액 구간의 높은 금리(예: 첫 50만원 5.0%)와 중간 금액 구간의 우대금리(예: 100만원까지 2.5%)를 조합하여 전체 수익률 최적화
-    - 조건: 관리 복잡도를 고려하여 최대 {max_accounts_number}개 통장까지 활용 가능
+    - 조건: 관리 복잡도를 고려하여 최대 {max_account_number}개 통장까지 활용 가능
     - 계산: 각 통장별 금리 구간 정보를 바탕으로 최적 배분 재계산
 
     **시나리오 3: 고수익형 (high_yield)**
@@ -157,11 +157,47 @@ class StrategyPrompts:
     - 조건: 기간별 이자율 변화를 고려한 최적 조합 재계산
 
     ⚙️ 각 시나리오별 필수 포함 정보:
-    - scenario_type: "single", "distributed", "high_yield" 중 하나
-    - scenario_name: 반드시 다음 중 하나로 고정
-      * "단일통장 집중형" (single 타입용)
-      * "분산형 통장 쪼개기" (distributed 타입용)  
-      * "수익률 최우선 전략" (high_yield 타입용)
+- scenario_type: "single", "distributed", "high_yield" 중 하나
+- scenario_name: 반드시 다음 중 하나로 고정
+  * "단일통장 집중형" (single 타입용)
+  * "분산형 통장 쪼개기" (distributed 타입용)  
+  * "수익률 최우선 전략" (high_yield 타입용)
+- scenario_content: 완성된 시나리오 상세 전략 내용 (아래 템플릿 정확히 따라서 작성)
+
+**단일형 템플릿:**
+```
+- {{{{상품명}}}} (연 {{{{금리}}}}%)
+- 예치금: {{{{금액:,}}}}원
+  ▷ 예상 세후 이자
+    - 6개월: 약 {{{{6개월이자:,}}}}원
+    - 1년: 약 {{{{1년이자:,}}}}원
+    - 3년: 약 {{{{3년이자:,}}}}원
+```
+
+**분산형 템플릿:**
+```
+1) {{{{상품명1}}}} (연 {{{{금리1}}}}%)
+   - 예치금: {{{{금액1:,}}}}원
+2) {{{{상품명2}}}} (연 {{{{금리2}}}}%)
+   - 예치금: {{{{금액2:,}}}}원
+  ▷ 예상 세후 이자 (총합 기준)
+    - 6개월: 약 {{{{총6개월이자:,}}}}원
+    - 1년: 약 {{{{총1년이자:,}}}}원
+    - 3년: 약 {{{{총3년이자:,}}}}원
+```
+
+**고수익형 템플릿:**
+```
+- Step1: {{{{특판상품명}}}} (연 {{{{특판금리}}}}%, {{{{특판기간}}}} 한정)
+  - 예치금: {{{{금액:,}}}}원
+  - ▷ {{{{특판기간}}}} 예상 세후 이자: 약 {{{{특판이자:,}}}}원
+- Step2: {{{{특판기간}}}} 후 {{{{일반상품명}}}}로 갈아타기 (연 {{{{일반금리}}}}%)
+  ▷ 총 예상 세후 이자
+    - 6개월: 약 {{{{총6개월이자:,}}}}원
+    - 1년: 약 {{{{총1년이자:,}}}}원
+```
+
+    - scenario_summary: 시나리오 요약 및 특징 (간단한 1-2줄 설명)
     - products: 상품별 배분 정보
       - product_code, product_name
       - allocated_amount: 배분 예치 금액
@@ -184,7 +220,7 @@ class StrategyPrompts:
     4. 사용자가 달성 불가능한 우대조건은 제외
     5. calculation_detail의 계산 로직을 참고하여 시나리오별 새로운 이자 계산
     6. 각 시나리오는 독립적으로 해당 카테고리 내 최고 수익률 추구
-    7. **분산형 전략**: 각 통장의 금리 구간별 최적화를 통해 수익 극대화 (최대 {max_accounts_number}개 통장)
+    7. **분산형 전략**: 각 통장의 금리 구간별 최적화를 통해 수익 극대화 (최대 {max_account_number}개 통장)
     8. 반드시 정확히 3개의 시나리오를 생성해야 함
     """
 

@@ -1,8 +1,9 @@
 # schemas/agent_responses.py
 from pydantic import BaseModel, Field
-from typing import Optional, Any
+from typing import Optional
 from schemas.eligibility_conditions import EligibilityConditions
 from schemas.question_tool_schema import UserResponse
+from schemas.strategy_tool_schema import ScenarioDetails, ProductInterestCalculation
 
 
 class SimpleProduct(BaseModel):
@@ -99,5 +100,51 @@ class QuestionErrorResponse(BaseModel):
     next_agent: str | None = Field(
         default=None, description="다음 에이전트"
     )  # Optional → str | None
+    success: bool = Field(default=False, description="성공 여부")
+    error: str = Field(description="에러 메시지")
+
+
+class StrategySuccessResponse(BaseModel):
+    """StrategyAgent 성공 응답"""
+
+    scenarios: list[ScenarioDetails] = Field(
+        description="설계된 3가지 시나리오 목록 (단일형/분산형/고수익형)"
+    )
+    user_conditions: EligibilityConditions = Field(description="사용자 조건")
+    user_responses: list[UserResponse] = Field(
+        description="사용자 질문-답변 목록"
+    )
+    response_summary: dict[str, bool] = Field(
+        description="질문별 조건 충족 여부 요약"
+    )
+    interest_calculations: list[ProductInterestCalculation] = Field(
+        description="상품별 이자 계산 결과"
+    )
+    processing_step: str = Field(default="strategy_completed", description="처리 단계")
+    next_agent: str = Field(default="ComparatorAgent", description="다음 에이전트")
+    success: bool = Field(default=True, description="성공 여부")
+    error: str | None = Field(default=None, description="에러 메시지")
+
+
+class StrategyErrorResponse(BaseModel):
+    """StrategyAgent 에러 응답"""
+
+    scenarios: list[ScenarioDetails] = Field(
+        default_factory=list, description="빈 시나리오 목록"
+    )
+    user_conditions: EligibilityConditions | None = Field(
+        default=None, description="사용자 조건"
+    )
+    user_responses: list[UserResponse] = Field(
+        default_factory=list, description="빈 응답 목록"
+    )
+    response_summary: dict[str, bool] = Field(
+        default_factory=dict, description="빈 응답 요약"
+    )
+    interest_calculations: list[ProductInterestCalculation] = Field(
+        default_factory=list, description="빈 계산 결과 목록"
+    )
+    processing_step: str = Field(default="strategy_failed", description="처리 단계")
+    next_agent: str | None = Field(default=None, description="다음 에이전트")
     success: bool = Field(default=False, description="성공 여부")
     error: str = Field(description="에러 메시지")

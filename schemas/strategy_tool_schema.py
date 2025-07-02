@@ -49,7 +49,9 @@ class ProductInterestCalculation(BaseModel):
 
     product_code: str = Field(description="상품 코드")
     product_name: str = Field(description="상품명")
-    interest: int = Field(description="사용자 예치기간 기준 세후 이자 (원)")
+    interest: int = Field(
+        description="사용자 예치기간 기준 세후 이자 (원). 콤마 없는 순수 정수로 출력 필수. 예: 152594"
+    )
     calculation_detail: str = Field(description="계산 과정 상세 설명")
     applied_conditions: list[str] = Field(description="적용된 우대조건 목록")
 
@@ -66,7 +68,9 @@ class InterestCalculatorResult(BaseModel):
         description="전체 상품별 이자 계산 결과"
     )
     user_responses: list[UserResponse] = Field(description="사용자 질문-답변 목록")
-    total_products_calculated: int = Field(description="계산된 상품 수")
+    total_products_calculated: int = Field(
+        description="계산된 상품 수. 콤마 없는 순수 정수로 출력 필수. 예: 15"
+    )
     user_conditions: EligibilityConditions = Field(description="사용자 조건")
     calculation_timestamp: str = Field(description="계산 수행 시간")
     success: bool = Field(description="계산 성공 여부")
@@ -91,16 +95,24 @@ class ProductAllocation(BaseModel):
 
     product_code: str = Field(description="상품 코드")
     product_name: str = Field(description="상품명")
-    allocated_amount: int = Field(description="배분 예치 금액 (원)")
+    allocated_amount: int = Field(
+        description="배분 예치 금액 (원). 콤마 없는 순수 정수로 출력 필수."
+    )
     interest_rate: float = Field(description="적용 금리 (%)")
     deposit_period_months: int = Field(description="예치 기간 (개월)")
     conditions_required: list[str] = Field(
         default_factory=list,
         description="필요한 우대조건 목록"
     )
-    expected_interest_6m: int = Field(description="6개월 예상 세후 이자 (원)")
-    expected_interest_1y: int = Field(description="1년 예상 세후 이자 (원)")
-    expected_interest_3y: int = Field(description="3년 예상 세후 이자 (원)")
+    expected_interest_6m: int = Field(
+        description="6개월 예상 세후 이자 (원). 콤마 없는 순수 정수로 출력 필수. 예: 76297"
+    )
+    expected_interest_1y: int = Field(
+        description="1년 예상 세후 이자 (원). 콤마 없는 순수 정수로 출력 필수. 예: 152594"
+    )
+    expected_interest_3y: int = Field(
+        description="3년 예상 세후 이자 (원). 콤마 없는 순수 정수로 출력 필수. 예: 457782"
+    )
 
 
 class ScenarioDetails(BaseModel):
@@ -108,13 +120,22 @@ class ScenarioDetails(BaseModel):
 
     scenario_type: ScenarioTypeEnum = Field(description="시나리오 타입")
     scenario_name: str = Field(description="시나리오명 (예: '단일통장 집중형/분산형 통장 쪼개기/수익률 최우선 전략')")
+    scenario_content: str = Field(description="완성된 시나리오 상세 내용 (사용자 출력용)")
     products: list[ProductAllocation] = Field(description="상품별 배분 목록")
-    total_allocated_amount: int = Field(description="총 배분 금액 (원)")
+    total_allocated_amount: int = Field(
+        description="총 배분 금액 (원). 콤마 없는 순수 정수로 출력 필수. 예: 20000000"
+    )
 
     # 총 예상 수익
-    total_expected_interest_6m: int = Field(description="6개월 총 예상 세후 이자 (원)")
-    total_expected_interest_1y: int = Field(description="1년 총 예상 세후 이자 (원)")
-    total_expected_interest_3y: int = Field(description="3년 총 예상 세후 이자 (원)")
+    total_expected_interest_6m: int = Field(
+        description="6개월 총 예상 세후 이자 (원). 콤마 없는 순수 정수로 출력 필수. 예: 152594"
+    )
+    total_expected_interest_1y: int = Field(
+        description="1년 총 예상 세후 이자 (원). 콤마 없는 순수 정수로 출력 필수. 예: 305188"
+    )
+    total_expected_interest_3y: int = Field(
+        description="3년 총 예상 세후 이자 (원). 콤마 없는 순수 정수로 출력 필수. 예: 915564"
+    )
 
     # 시나리오 특징
     scenario_summary: str = Field(description="시나리오 요약 및 특징")
@@ -138,6 +159,9 @@ class StrategyScenarioResult(BaseModel):
 
     scenarios: list[ScenarioDetails] = Field(
         description="설계된 3가지 시나리오 목록"
+    )
+    interest_calculations: list[ProductInterestCalculation] = Field(  # 추가
+        description="상품별 이자 계산 결과"
     )
     user_conditions: EligibilityConditions = Field(description="사용자 조건")
     user_responses: list[UserResponse] = Field(

@@ -44,8 +44,8 @@ def create_test_conditions() -> list[EligibilityConditions]:
     # 테스트 케이스 2: 낮은 금리, 일반 조건
     test_case_2 = EligibilityConditions(
         min_interest_rate=2.0,
-        categories=["anyone"],
-        special_conditions=["bank_app", "using_card"],
+        categories=["online"],
+        special_conditions=[],
         budget=20000000,
         deposit_period=12
     )
@@ -66,7 +66,7 @@ def create_test_conditions() -> list[EligibilityConditions]:
         deposit_period=24
     )
 
-    return [test_case_1]
+    return [test_case_1, test_case_2]
 
 
 def create_llm():

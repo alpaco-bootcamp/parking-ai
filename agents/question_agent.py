@@ -39,12 +39,6 @@ class QuestionAgent:
         # Runnable 객체로 반환하여 파이프라인에서 실행
         self.runnable = RunnableLambda(self.execute)
 
-        print(
-            f"🔍 DEBUG: condition_extractor type: {type(self.tools.condition_extractor)}"
-        )
-        print(f"🔍 DEBUG: pattern_analyzer type: {type(self.tools.pattern_analyzer)}")
-        print(f"🔍 DEBUG: runnable type: {type(self.runnable)}")
-
         print("✅ QuestionAgent 초기화 완료")
 
     def _build_runnable_chain(self) -> RunnableSequence:

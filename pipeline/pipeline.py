@@ -4,12 +4,13 @@ from langchain_core.language_models import BaseLanguageModel
 
 from agents.eligibility_agent import EligibilityAgent
 from agents.question_agent import QuestionAgent
+from agents.strategy_agent import StrategyAgent
 from schemas.eligibility_conditions import EligibilityConditions
 from schemas.agent_responses import (
     EligibilitySuccessResponse,
     EligibilityErrorResponse,
     QuestionErrorResponse,
-    QuestionSuccessResponse,
+    QuestionSuccessResponse, StrategySuccessResponse, StrategyErrorResponse,
 )
 from schemas.question_tool_schema import UserInputResult
 
@@ -32,10 +33,10 @@ class Pipeline:
         """
 
         # 에이전트 초기화
-        self.eligibility_agent = EligibilityAgent()  # rule_base기반
-        self.question_agent = QuestionAgent(llm, test_mode)
+        self.eligibility_agent = EligibilityAgent()  # rule_base기반 통장 필터링
+        self.question_agent = QuestionAgent(llm, test_mode) # 역질문
+        self.strategy_agent = StrategyAgent(llm) # 전략 시나리오
         # TODO: 향후 추가될 에이전트들
-        # self.strategy_agent = StrategyAgent()
         # self.comparator_agent = ComparatorAgent()
         # self.formatter_agent = FormatterAgent()
 
@@ -65,9 +66,9 @@ class Pipeline:
         # 각 단계의 출력이 다음 단계의 입력이 됨
         pipeline_components = [
             self.eligibility_agent.runnable,
-            self.question_agent.runnable,  # 역질문
+            self.question_agent.runnable,
+            self.strategy_agent.runnable,
             # TODO: 향후 추가될 에이전트들
-            # self.strategy_agent.runnable,
             # self.comparator_agent.runnable,
             # self.formatter_agent.runnable
         ]
@@ -76,7 +77,7 @@ class Pipeline:
 
     def run(
         self, conditions: EligibilityConditions
-    ) -> QuestionSuccessResponse | QuestionErrorResponse:
+    ) -> StrategySuccessResponse | StrategyErrorResponse:
         """
         파이프라인 실행
 
@@ -84,7 +85,7 @@ class Pipeline:
             conditions: 사용자 우대조건
 
         Returns:
-            QuestionSuccessResponse | QuestionErrorResponse: 사용자 질문-답변 데이터 + 적격 통장 목록
+            StrategySuccessResponse | StrategyErrorResponse: 최종 전략 시나리오 결과 또는 에러 응답
         """
         print("🚀 MultiAgentPipeline 실행 시작")
 
@@ -92,17 +93,25 @@ class Pipeline:
             # 입력 데이터 구성
             input_data = {"conditions": conditions}
 
-            print(f"   📝 입력 조건: {input_data.get('conditions', {})}")
+            print(f"   📝 입력 조건: 예산 {conditions.budget:,}원, 최소금리 {conditions.min_interest_rate}%")
 
             # 파이프라인 실행
             result = self.pipeline.invoke(input_data)
 
             print("🎯 MultiAgentPipeline 실행 완료")
+
+            # 결과 타입별 요약 출력
+            if isinstance(result, StrategySuccessResponse):
+                print(f"   ✅ 성공: {len(result.scenarios)}개 시나리오 생성 완료")
+                print(f"   📊 전략 목록:")
+                for i, scenario in enumerate(result.scenarios, 1):
+                    print(f"      {i}. {scenario.scenario_name}")
+
             return result
 
         except Exception as e:
             print(f"❌ MultiAgentPipeline 실행 오류: {e}")
-            return QuestionErrorResponse(error=f"파이프라인 실행 실패: {str(e)}")
+            return StrategyErrorResponse(error=f"파이프라인 실행 실패: {str(e)}")
 
     @staticmethod
     def get_pipeline_info() -> dict[str, Any]:
@@ -113,13 +122,8 @@ class Pipeline:
             dict: 파이프라인 구성 정보
         """
         return {
-            "total_agents": 1,  # 현재는 EligibilityAgent만
-            "current_agents": ["EligibilityAgent"],
-            "planned_agents": [
-                "FilterQuestionAgent",
-                "StrategyAgent",
-                "ComparatorAgent",
-                "FormatterAgent",
-            ],
-            "pipeline_status": "partial_implementation",
+            "total_agents": 3,
+            "current_agents": ["EligibilityAgent", "QuestionAgent", "StrategyAgent"],
+            "planned_agents": ["ComparatorAgent", "FormatterAgent"],
+            "pipeline_status": "strategy_implementation_complete",
         }
