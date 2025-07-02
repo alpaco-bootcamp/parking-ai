@@ -81,6 +81,59 @@ class ConditionMatcherTool:
 
         return filtered
 
+    @staticmethod
+    def _apply_count_rebalancing(matched_products: list[dict], all_products: list[dict]) -> list[dict]:
+        """
+        금리 높은 순으로 정렬하여 15~30개로 개수 조정
+        15개 미만일 경우 매칭된 상품 + 전체 데이터에서 추가 보충하여 총 15개
+        30개 초과인 경우 금리 높은순으로 30개로 제한
+
+        Args:
+            matched_products: 3차 필터링까지 통과한 상품들
+            all_products: 전체 상품 데이터 (15개 미만일 때 보충용)
+
+        Returns:
+            list[dict]: 리밸런싱된 상품 목록 (15~30개)
+        """
+        if not matched_products and not all_products:
+            return []
+
+        # 1. 매칭된 상품들을 prime_interest_rate 기준으로 정렬
+        sorted_matched = sorted(
+            matched_products,
+            key=lambda x: x.get("prime_interest_rate", 0),
+            reverse=True
+        )
+
+        # 2. 개수에 따른 처리
+        if len(sorted_matched) < 15:
+            # 15개 미만이면 부족한 개수만큼 전체 데이터에서 보충
+            needed_count = 15 - len(sorted_matched)
+
+            # 매칭된 상품의 product_code 집합 (중복 방지용)
+            matched_codes = {product.get("product_code") for product in sorted_matched}
+
+            # 전체 상품에서 매칭된 것 제외하고 정렬
+            remaining_products = [
+                product for product in all_products
+                if product.get("product_code") not in matched_codes
+            ]
+            sorted_remaining = sorted(
+                remaining_products,
+                key=lambda x: x.get("prime_interest_rate", 0),
+                reverse=True
+            )
+
+            # 매칭된 상품 + 부족한 개수만큼 추가
+            return sorted_matched + sorted_remaining[:needed_count]
+
+        elif len(sorted_matched) > 30:
+            # 30개 초과면 상위 30개만
+            return sorted_matched[:30]
+        else:
+            # 15~30개면 그대로
+            return sorted_matched
+
     def run(
         self, conditions: EligibilityConditions, products: list[dict]
     ) -> EligibilityFilterResult:
@@ -117,6 +170,10 @@ class ConditionMatcherTool:
             matched = self._apply_special_condition_filters(
                 matched, conditions.special_conditions
             )
+
+        # 🆕 4차: 개수 리밸런싱 (15~30개 조정)
+        matched = self._apply_count_rebalancing(matched, products)
+
 
         # 제외된 상품 업데이트 (매칭에서 제외된 것들)
         matched_codes = {p.get("product_code") for p in matched}
