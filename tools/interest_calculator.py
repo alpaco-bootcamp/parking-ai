@@ -120,7 +120,7 @@ class InterestCalculatorTool(Runnable):
             from langchain.schema.runnable import RunnablePassthrough, RunnableLambda
             from langchain.output_parsers import PydanticOutputParser
 
-            batch_size = 3  # 배치 크기 (한 번에 [batch_size]개 상품씩 처리)
+            batch_size = 5  # 배치 크기 (한 번에 [batch_size]개 상품씩 처리)
             all_calculations: list[ProductInterestCalculation] = []
 
             # 배치별로 처리
@@ -302,6 +302,7 @@ class InterestCalculatorTool(Runnable):
                 return self._format_error_response("이자 계산에 실패했습니다.")
 
             print(f"💰 {len(calculations)}개 상품 이자 계산 완료")
+            print(f"💰 calculations: {calculations}")
 
             # 4. 성공 응답 포맷팅
             return self._format_success_response(calculations, input_data)

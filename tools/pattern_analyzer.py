@@ -178,7 +178,6 @@ class PatternAnalyzerTool(Runnable):
                     "format_instructions": self.output_parser.get_format_instructions()
                 },
             )
-            print(f"prompt_template: {prompt_template.template}")
 
             # 4. LCEL 체이닝 구성
             chain = (

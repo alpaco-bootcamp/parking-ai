@@ -90,7 +90,7 @@ class StrategyScenarioTool(Runnable):
                 top_interest_calculations=top_calculations,
                 user_conditions=interest_result.user_conditions,
                 user_responses=interest_result.user_responses,
-                max_accounts_number=5
+                max_account_number=5
             )
 
             # 3. 프롬프트 템플릿 설정
@@ -164,6 +164,7 @@ class StrategyScenarioTool(Runnable):
             scenarios=scenarios,
             user_conditions=interest_result.user_conditions,
             user_responses=interest_result.user_responses,
+            interest_calculations=interest_result.calculations,
             generation_success=True,
             error=None
         )
@@ -183,6 +184,7 @@ class StrategyScenarioTool(Runnable):
             scenarios=[],
             user_conditions=EligibilityConditions(min_interest_rate=0.0),
             user_responses=[],
+            interest_calculations=[],
             generation_success=False,
             error=error_message
         )
